@@ -1,4 +1,4 @@
-// Public Submission Approval Request Router (api/submit.js)
+// Public Submission Router with Security Wrappers (api/submit.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -7,23 +7,16 @@ module.exports = async function handler(req, res) {
 
   const { title, thumbnailUrl, videoUrl } = req.body;
 
-  const videoObj = {
-    id: `vid-${Date.now()}`,
-    title: title,
-    videoUrl: videoUrl,
-    thumbnailUrl: thumbnailUrl,
-    timestamp: Date.now(),
-    duration: "User Upload"
-  };
-
-  // डेटा को बटन डेटा लिमिट के अंदर रखने के लिए एन्कोड करें
-  const base64Data = Buffer.from(JSON.stringify(videoObj)).toString("base64");
-
+  // Wrapping metadata inside easily parseable markdown tags to bypass callback 64-byte limit!
   const text = `🚨 **NEW VIDEO APPROVAL REQUEST** 🚨\n` +
                `─────────────────────────\n` +
                `🎬 **Title:** ${title}\n` +
                `🖼️ **Thumbnail:** ${thumbnailUrl}\n` +
-               `🔗 **Video Source:** [Click to Preview](${videoUrl})`;
+               `🔗 **Video Source:** [Click to Preview](${videoUrl})\n\n` +
+               `--- RAW DATA FOR ENGINE ---\n` +
+               `[TITLE]${title}[/TITLE]\n` +
+               `[THUMB]${thumbnailUrl}[/THUMB]\n` +
+               `[URL]${videoUrl}[/URL]`;
 
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
@@ -36,8 +29,8 @@ module.exports = async function handler(req, res) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: "✅ Approve & Go Live", callback_data: `approve_${base64Data}` },
-              { text: "❌ Reject", callback_data: `reject_${base64Data}` }
+              { text: "✅ Approve", callback_data: "approve_user_sub" },
+              { text: "❌ Reject", callback_data: "reject_user_sub" }
             ]
           ]
         }
