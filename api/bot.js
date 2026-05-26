@@ -1,4 +1,4 @@
-// Premium Universal Serverless Bot Engine (api/bot.js)
+// Upgraded Diagnostic Serverless Bot Engine (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -31,23 +31,23 @@ async function handleMessage(message) {
 
   const text = message.text || "";
 
-  // 1. /start Command (Beautiful Premium UI Commands Menu)
+  // 1. /start Command
   if (text === "/start") {
     const welcomeMsg = `⚡️ **VIRAL HUB CONTROL PANEL** ⚡️\n` +
                        `─────────────────────────\n` +
-                       `Welcome back, Administrator! Here are your dynamic commands:\n\n` +
-                       `📊 **/stats** — वेबसाइट के कुल वीडियो और स्टेट्स देखें\n` +
+                       `Welcome back, Administrator!\n\n` +
+                       `📊 **/stats** — वेबसाइट के कुल वीडियो देखें\n` +
                        `✅ **/done** — डेटाबेस सिंक होने की पुष्टि करें\n` +
                        `❔ **/help** — नो-लिमिट अपलोड करने का गाइड\n\n` +
                        `📤 **वीडियो अपलोड करने के तरीके:**\n` +
-                       `🔹 **तरीका 1 (कम साइज़ < 20MB):** सीधा कोई भी वीडियो यहाँ फॉरवर्ड करें.\n` +
-                       `🔹 **तरीका 2 (नो-लिमिट - कोई भी साइज़):** किसी भी डायरेक्ट .mp4 लिंक को इस फॉर्मेट में भेजें:\n` +
+                       `🔹 **तरीका 1 (< 20MB):** सीधा कोई भी वीडियो यहाँ फॉरवर्ड करें.\n` +
+                       `🔹 **तरीका 2 (नो-लिमिट):** लिंक को इस फॉर्मेट में भेजें:\n` +
                        `\`https://link.com/video.mp4 | वीडियो का नाम\``;
     await sendTelegramMessage(chatId, welcomeMsg);
     return;
   }
 
-  // 2. /stats Command (Fetch current db stats)
+  // 2. /stats Command
   if (text === "/stats") {
     await sendTelegramMessage(chatId, "📊 *डेटाबेस से संपर्क किया जा रहा है...*");
     try {
@@ -56,8 +56,7 @@ async function handleMessage(message) {
                        `─────────────────────────\n` +
                        `🔹 **कुल वीडियो लाइव:** \`${db.length}\` वीडियो\n` +
                        `🔹 **डेटाबेस स्थिति:** ऑनलाइन और सक्रिय\n` +
-                       `🔹 **नवीनतम वीडियो:** ${db[0] ? `*${db[0].title}*` : "कोई नहीं"}\n` +
-                       `🔹 **वेबसाइट सर्वर:** Vercel (Serverless)`;
+                       `🔹 **नवीनतम वीडियो:** ${db[0] ? `*${db[0].title}*` : "कोई नहीं"}`;
       await sendTelegramMessage(chatId, statsMsg);
     } catch (err) {
       await sendTelegramMessage(chatId, `❌ **Error**: सांख्यिकी लोड करने में विफल: ${err.message}`);
@@ -67,7 +66,7 @@ async function handleMessage(message) {
 
   // 3. /done Command
   if (text === "/done") {
-    await sendTelegramMessage(chatId, "🎉 **वेबसाइट पूरी तरह सिंक हो चुकी है!**\nआपकी लाइव वेबसाइट पर जाकर बदलाव देख सकते हैं.");
+    await sendTelegramMessage(chatId, "🎉 **वेबसाइट सिंक हो चुकी है!**");
     return;
   }
 
@@ -75,16 +74,14 @@ async function handleMessage(message) {
   if (text === "/help") {
     const helpMsg = `ℹ️ **नो-लिमिट वीडियो अपलोड गाइड** ℹ️\n` +
                     `─────────────────────────\n` +
-                    `यदि आप 20MB से बड़ी या सुरक्षित चैनल की फाइलें अपलोड करना चाहते हैं, तो इन स्टेप्स का पालन करें:\n\n` +
-                    `1️⃣ टेलीग्राम पर किसी भी Direct Link Generator Bot का उपयोग करके वीडियो का \`.mp4\` लिंक निकालें.\n` +
+                    `1️⃣ किसी भी Direct Link Generator Bot का उपयोग करके वीडियो का \`.mp4\` लिंक निकालें.\n` +
                     `2️⃣ उस लिंक को कॉपी करके हमारे बॉट को इस प्रकार भेजें:\n` +
-                    `\`https://yourdomain.com/movie.mp4 | My Beautiful Video\`\n\n` +
-                    `आपका बॉट बिना किसी लोडिंग टाइम के इसे सीधा वेबसाइट पर लाइव कर देगा!`;
+                    `\`https://yourdomain.com/movie.mp4 | My Beautiful Video\``;
     await sendTelegramMessage(chatId, helpMsg);
     return;
   }
 
-  // 5. Method 2 Handler (Detect URL | Title format)
+  // 5. Method 2 Handler (URL | Title format)
   if (text.includes("|") && (text.startsWith("http://") || text.startsWith("https://"))) {
     await sendTelegramMessage(chatId, "⏳ **Processing**: डायरेक्ट लिंक को डेटाबेस में जोड़ा जा रहा है...");
     try {
@@ -105,12 +102,12 @@ async function handleMessage(message) {
       await commitToGitHub(newEntry);
       await sendTelegramMessage(chatId, `✅ **Success**: *${title}* बिना किसी साइज लिमिट के वेबसाइट पर लाइव हो गया है!`);
     } catch (err) {
-      await sendTelegramMessage(chatId, `❌ **Error**: लिंक जोड़ने में समस्या आई: ${err.message}`);
+      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}`);
     }
     return;
   }
 
-  // 6. Method 1 Handler (Direct Video file < 20MB)
+  // 6. Method 1 Handler (Direct Video < 20MB)
   let videoFile = null;
   let title = "Untitled Highlight";
 
@@ -150,7 +147,7 @@ async function handleMessage(message) {
       await sendTelegramMessage(chatId, `✅ **Success**: *${title}* सीधा वेबसाइट पर लाइव हो चुका है!`);
 
     } catch (err) {
-      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}\n\n💡 _टिप: यदि वीडियो 20MB से बड़ा है, तो /help का उपयोग करके इसे बिना लिमिट के अपलोड करें._`);
+      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}\n\n💡 _टिप: यदि वीडियो 20MB से बड़ा है, तो /help का उपयोग करें._`);
     }
   }
 }
@@ -191,6 +188,10 @@ async function commitToGitHub(newVideo) {
   const token = process.env.GITHUB_TOKEN;
   const path = "videos.json";
 
+  if (!owner || !repo || !token) {
+    throw new Error("Missing GITHUB Environment Variables in Vercel.");
+  }
+
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const headers = {
     "Authorization": `token ${token}`,
@@ -207,6 +208,9 @@ async function commitToGitHub(newVideo) {
     sha = data.sha;
     const decoded = Buffer.from(data.content, "base64").toString("utf-8");
     currentDatabase = JSON.parse(decoded);
+  } else if (getResponse.status !== 404) {
+    const errBody = await getResponse.json().catch(() => ({}));
+    throw new Error(`GitHub Database Read Failed: ${getResponse.status} - ${errBody.message || "Unknown error"}`);
   }
 
   currentDatabase.unshift(newVideo);
@@ -223,7 +227,8 @@ async function commitToGitHub(newVideo) {
   });
 
   if (!putResponse.ok) {
-    throw new Error("Failed to write to GitHub.");
+    const errBody = await putResponse.json().catch(() => ({}));
+    throw new Error(`GitHub Write Blocked: ${putResponse.status} - ${errBody.message || "Unknown write error"}`);
   }
 }
 
