@@ -1,4 +1,4 @@
-// Universal Serverless Admin Bot - 100% Fixed & Strict Mode Compliant (api/bot.js)
+// Upgraded Admin Bot - Auto Delete Progress Message Cycle (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -26,13 +26,11 @@ async function handleMessage(message) {
   const userId = message.from.id;
   const text = message.text || "";
 
-  // केवल ओनर (Admin) ही अधिकृत है
   if (userId !== ADMIN_ID) {
     await sendTelegramMessage(chatId, "⚠️ **Access Denied!** This bot is completely private.");
     return;
   }
 
-  // 1. पूर्ण /start कमांड (सभी कमांड्स और गाइड रिस्टोर किए गए)
   if (text === "/start") {
     const welcomeMsg = `⚡️ **VIRAL HUB CONTROL PANEL v3.0** ⚡️\n` +
                        `─────────────────────────\n` +
@@ -48,7 +46,6 @@ async function handleMessage(message) {
     return;
   }
 
-  // 2. /stats कमांड
   if (text === "/stats") {
     await sendTelegramMessage(chatId, "📊 *डेटाबेस लोड किया जा रहा है...*");
     try {
@@ -65,13 +62,11 @@ async function handleMessage(message) {
     return;
   }
 
-  // 3. /done कमांड
   if (text === "/done") {
     await sendTelegramMessage(chatId, "🎉 **वेबसाइट पूरी तरह सिंक हो चुकी है!**");
     return;
   }
 
-  // 4. /help कमांड
   if (text === "/help") {
     const helpMsg = `ℹ️ **नो-लिमिट लिंक गाइड** ℹ️\n` +
                     `─────────────────────────\n` +
@@ -82,32 +77,7 @@ async function handleMessage(message) {
     return;
   }
 
-  // 5. डायरेक्ट वीडियो फ़ॉरवर्ड हैंडलर (नो-लिमिट पब्लिक चैनल बाईपास)
-  if (message.forward_from_chat && message.forward_from_chat.username && (message.video || message.document)) {
-    const channelUsername = message.forward_from_chat.username;
-    const messageId = message.forward_from_message_id;
-    const directPublicLink = `https://t.me/${channelUsername}/${messageId}`;
-    const title = sanitizeTitle(message.caption || "Untitled Highlight");
-
-    const newEntry = {
-      id: `vid-${Date.now()}`,
-      title: title,
-      videoUrl: directPublicLink,
-      thumbnailUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
-      timestamp: Date.now(),
-      duration: "HQ Stream"
-    };
-
-    try {
-      await commitToGitHub(newEntry);
-      await sendTelegramMessage(chatId, `✅ **Approved & Live (No-Limit Bypass)**: *${title}*`);
-    } catch (e) {
-      await sendTelegramMessage(chatId, `❌ **GitHub Write Error**: ${e.message}`);
-    }
-    return;
-  }
-
-  // सामान्य वीडियो अपलोड (< 20MB)
+  // 6. डायरेक्ट वीडियो फ़ॉरवर्ड हैंडलर (Clean Message Deletion Cycle)
   let videoFile = null;
   let rawCaption = "Untitled Highlight";
 
@@ -120,58 +90,61 @@ async function handleMessage(message) {
   }
 
   if (videoFile) {
-    await sendTelegramMessage(chatId, "⏳ **Processing**: वीडियो का लिंक जनरेट किया जा रहा है...");
-    try {
-      const fileResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getFile?file_id=${videoFile.file_id}`);
-      const fileData = await fileResponse.json();
+    // 1. सबसे पहले चैट को साफ़ करने के लिए फ़ॉरवर्डेड वीडियो को डिलीट करें!
+    await deleteMessage(chatId, message.message_id);
 
-      if (!fileData.ok) {
-        throw new Error(fileData.description || "Telegram API Error");
+    // 2. पहला प्रोग्रेस मैसेज भेजें
+    const p1 = await sendTelegramMessage(chatId, "⏳ **Processing**: वीडियो का डायरेक्ट लिंक निकाला जा रहा है...");
+    const p1Id = p1 ? p1.result.message_id : null;
+
+    try {
+      let videoUrl = "";
+      
+      // यदि वीडियो किसी पब्लिक चैनल से फ़ॉरवर्डेड है, तो सीधे लिंक निकालें (No-Limit Bypass)
+      if (message.forward_from_chat && message.forward_from_chat.username) {
+        const channelUsername = message.forward_from_chat.username;
+        const messageId = message.forward_from_message_id;
+        videoUrl = `https://t.me/${channelUsername}/${messageId}`;
+      } else {
+        // अन्यथा getFile के ज़रिए डाउनलोड लिंक निकालें
+        const fileResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getFile?file_id=${videoFile.file_id}`);
+        const fileData = await fileResponse.json();
+
+        if (!fileData.ok) {
+          throw new Error(fileData.description || "Telegram API Error");
+        }
+        videoUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${fileData.result.file_path}`;
       }
 
-      const directVideoUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${fileData.result.file_path}`;
       const title = sanitizeTitle(rawCaption);
 
       const newEntry = {
         id: `vid-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         title: title,
-        videoUrl: directVideoUrl,
+        videoUrl: videoUrl,
         thumbnailUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
         timestamp: Date.now(),
         duration: formatDuration(videoFile.duration)
       };
 
-      await sendTelegramMessage(chatId, "💾 **Saving**: डेटाबेस अपडेट किया जा रहा है...");
+      // 3. पहला प्रोग्रेस मैसेज डिलीट करें
+      if (p1Id) await deleteMessage(chatId, p1Id);
+
+      // 4. दूसरा प्रोग्रेस मैसेज भेजें
+      const p2 = await sendTelegramMessage(chatId, "💾 **Saving**: डेटाबेस अपडेट किया जा रहा है...");
+      const p2Id = p2 ? p2.result.message_id : null;
+
       await commitToGitHub(newEntry);
+
+      // 5. दूसरा प्रोग्रेस मैसेज भी डिलीट करें
+      if (p2Id) await deleteMessage(chatId, p2Id);
+
+      // 6. अंतिम सफलता का मैसेज भेजें (चैट बिल्कुल साफ रहेगी!)
       await sendTelegramMessage(chatId, `✅ **Success**: *${title}* सीधा वेबसाइट पर लाइव हो चुका है!`);
+
     } catch (err) {
+      if (p1Id) await deleteMessage(chatId, p1Id);
       await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}\n\n💡 _टिप: यदि वीडियो 20MB से बड़ा है, तो इसे किसी पब्लिक चैनल में डालकर यहाँ फॉरवर्ड करें।_`);
-    }
-    return;
-  }
-
-  // डायरेक्ट मेथड 2 लिंक हैंडलर
-  if (text.includes("|") && (text.startsWith("http://") || text.startsWith("https://"))) {
-    await sendTelegramMessage(chatId, "⏳ **Processing**: लिंक को डेटाबेस में जोड़ा जा रहा है...");
-    try {
-      const parts = text.split("|");
-      const videoUrl = parts[0].trim();
-      const rawTitle = parts[1].trim();
-      const title = sanitizeTitle(rawTitle);
-
-      const newEntry = {
-        id: `vid-${Date.now()}`,
-        title: title,
-        videoUrl: videoUrl,
-        thumbnailUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
-        timestamp: Date.now(),
-        duration: "Web Stream"
-      };
-
-      await commitToGitHub(newEntry);
-      await sendTelegramMessage(chatId, `✅ **Success**: *${title}* वेबसाइट पर लाइव हो गया है!`);
-    } catch (err) {
-      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}`);
     }
   }
 }
@@ -182,7 +155,6 @@ async function handleCallback(query) {
   const messageText = query.message.text || "";
   const data = query.data;
 
-  // 1. सुरक्षित तरीके से बिना ब्रैकेट्स के डेटा को स्प्लिट करके रीड करना (No more 64-byte or split error!)
   if (data === "approve_user_sub") {
     try {
       const title = messageText.split("SUB_TITLE:")[1].split("SUB_THUMB:")[0].trim();
@@ -215,7 +187,6 @@ async function handleCallback(query) {
     }
   }
 
-  // 2. रिजेक्शन हैंडलर
   if (data === "reject_user_sub") {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
       method: "POST",
@@ -231,11 +202,20 @@ async function handleCallback(query) {
 }
 
 async function sendTelegramMessage(chatId, text) {
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+  const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" })
   });
+  return await response.json();
+}
+
+async function deleteMessage(chatId, messageId) {
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/deleteMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+  }).catch(() => {});
 }
 
 async function fetchCurrentDatabase() {
@@ -294,7 +274,6 @@ function sanitizeTitle(rawTitle) {
   clean = clean.replace(/@\w+/g, "").replace(/#\w+/g, "");
   clean = clean.replace(/[*_`\[\]()\-]/g, "");
 
-  // Correct syntax (No undeclared variables anymore)
   const promoKeywords = [/join/gi, /subscribe/gi, /channel/gi, /telegram/gi, /bot/gi, /link/gi, /click/gi, /unqid/gi, /free/gi];
   promoKeywords.forEach(word => {
     clean = clean.replace(word, "");
