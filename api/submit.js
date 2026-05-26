@@ -1,4 +1,4 @@
-// Public Submission Router (api/submit.js)
+// Upgraded Submission Router with Secure Plain-text Keys (api/submit.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -7,16 +7,16 @@ module.exports = async function handler(req, res) {
 
   const { title, thumbnailUrl, videoUrl } = req.body;
 
-  // Wrapping metadata inside easily parseable markdown tags to bypass callback 64-byte limit!
+  // Formatting message text with plain-text keys instead of brackets to bypass telegram parsing bugs
   const text = `🚨 **NEW VIDEO APPROVAL REQUEST** 🚨\n` +
                `─────────────────────────\n` +
                `🎬 **Title:** ${title}\n` +
-               `🖼️ **Thumbnail:** ${thumbnailUrl}\n` +
+               `🖼️ **Thumbnail:** [Image](${thumbnailUrl})\n` +
                `🔗 **Video Source:** [Click to Preview](${videoUrl})\n\n` +
-               `--- RAW DATA FOR ENGINE ---\n` +
-               `[TITLE]${title}[/TITLE]\n` +
-               `[THUMB]${thumbnailUrl}[/THUMB]\n` +
-               `[URL]${videoUrl}[/URL]`;
+               `--- RAW DATA FOR BOT ---\n` +
+               `SUB_TITLE: ${title}\n` +
+               `SUB_THUMB: ${thumbnailUrl}\n` +
+               `SUB_URL: ${videoUrl}`;
 
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
