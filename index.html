@@ -31,7 +31,7 @@
     </header>
 
     <main class="main-content">
-        <!-- Grid View Section -->
+        <!-- Grid View Section (Default Home View) -->
         <section id="gridView" class="view-section active-view">
             <div class="grid-header">
                 <h2 id="sectionTitle">Latest Videos</h2>
@@ -39,10 +39,11 @@
             <div class="video-grid" id="videoGrid"></div>
         </section>
 
-        <!-- Mobile-First Video Player Section -->
-        <section id="playerView" class="view-section player-view">
+        <!-- Mobile-First Video Player Section (Fully Hidden on Load) -->
+        <section id="playerView" class="view-section player-view" style="display: none;">
             <div class="player-container" id="playerContainer">
-                <video class="video-element" id="mainVideo" preload="metadata" playsinline></video>
+                <!-- Direct Video Element with no-download options -->
+                <video class="video-element" id="mainVideo" preload="metadata" playsinline controlsList="nodownload"></video>
                 <div id="iframeContainer" class="iframe-container" style="display: none;"></div>
 
                 <div class="play-animation-overlay" id="playOverlay">
@@ -97,6 +98,14 @@
             
             <div class="drawer-divider"></div>
             
+            <!-- Original Thumbnail Toggle Option -->
+            <div class="toggle-container">
+                <span class="toggle-label"><i class="fa-solid fa-film"></i> Original Thumbnail Show</span>
+                <label class="switch">
+                    <input type="checkbox" id="originalThumbnailShow" onchange="toggleOriginalThumbnails()">
+                    <span class="slider round"></span>
+                </label>
+            </div>
             <div class="toggle-container">
                 <span class="toggle-label"><i class="fa-solid fa-eye-slash"></i> Pause Watch History</span>
                 <label class="switch">
@@ -195,7 +204,7 @@
         </div>
     </div>
 
-    <!-- Bottom Mobile-Style Navigation Bar -->
+    <!-- Bottom Mobile-Style Navigation Bar (Re-ordered with Most Viewed) -->
     <nav class="bottom-nav">
         <button class="nav-item active" id="navExplore" onclick="switchTab('all'); setActiveNavItem('navExplore')">
             <i class="fa-solid fa-compass"></i>
@@ -209,6 +218,10 @@
             <div class="search-circle">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
+        </button>
+        <button class="nav-item" id="navMostViewed" onclick="switchTab('most_viewed'); setActiveNavItem('navMostViewed')">
+            <i class="fa-solid fa-fire"></i>
+            <span>Most Viewed</span>
         </button>
         <button class="nav-item" id="navHistory" onclick="switchTab('history'); setActiveNavItem('navHistory')">
             <i class="fa-solid fa-clock-rotate-left"></i>
