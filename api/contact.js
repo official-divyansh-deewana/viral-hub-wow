@@ -1,4 +1,3 @@
-// Contact Us Message Forwarder (api/contact.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
