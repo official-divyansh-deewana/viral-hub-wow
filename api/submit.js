@@ -1,4 +1,4 @@
-// Public Submission Router with Security Wrappers (api/submit.js)
+// Public Submission Router (api/submit.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
