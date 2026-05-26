@@ -1,4 +1,4 @@
-// Universal Serverless Admin Bot & Metadata Parser Engine (api/bot.js)
+// Upgraded Serverless Admin Bot - Strict Mode Compliant (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -9,13 +9,9 @@ module.exports = async function handler(req, res) {
 
   try {
     const payload = req.body;
-    
-    // 1. Handling Button Callbacks (Approve / Reject Action)
     if (payload.callback_query) {
       await handleCallback(payload.callback_query);
-    } 
-    // 2. Handling Commands or Messages
-    else if (payload.message) {
+    } else if (payload.message) {
       await handleMessage(payload.message);
     }
   } catch (err) {
@@ -30,14 +26,13 @@ async function handleMessage(message) {
   const userId = message.from.id;
   const text = message.text || "";
 
-  // Only Owner is authorized
   if (userId !== ADMIN_ID) {
     await sendTelegramMessage(chatId, "⚠️ **Access Denied!** This bot is completely private.");
     return;
   }
 
   if (text === "/start") {
-    await sendTelegramMessage(chatId, "⚡ **Viral Hub Admin Core v3.0 Active**\n\nसफलतापूर्वक सिंक मोड ऑन है.");
+    await sendTelegramMessage(chatId, "⚡ **Viral Hub Admin Core Active**\n\nसफलतापूर्वक सिंक मोड ऑन है।");
     return;
   }
 
@@ -57,8 +52,12 @@ async function handleMessage(message) {
       duration: "HQ Stream"
     };
 
-    await commitToGitHub(newEntry);
-    await sendTelegramMessage(chatId, `✅ **Approved & Live**: *${title}*`);
+    try {
+      await commitToGitHub(newEntry);
+      await sendTelegramMessage(chatId, `✅ **Approved & Live**: *${title}*`);
+    } catch (e) {
+      await sendTelegramMessage(chatId, `❌ **GitHub Write Error**: ${e.message}`);
+    }
   }
 }
 
@@ -68,7 +67,6 @@ async function handleCallback(query) {
   const messageText = query.message.text || "";
   const data = query.data;
 
-  // 1. Approve Callback - Extract from secure text wrappers to bypass 64-byte Telegram limit
   if (data === "approve_user_sub") {
     try {
       const title = messageText.split("[TITLE]")[1].split("[/TITLE]")[0].trim();
@@ -101,7 +99,6 @@ async function handleCallback(query) {
     }
   }
 
-  // 2. Reject Callback
   if (data === "reject_user_sub") {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
       method: "POST",
@@ -158,4 +155,8 @@ async function commitToGitHub(newVideo) {
 
 function sanitizeTitle(rawTitle) {
   if (!rawTitle) return `VID_${Date.now()}.mp4`;
-  let clean = rawTitle
+  let clean = rawTitle.replace(/https?:\/\/[^\s]+/gi, "");
+  clean = clean.replace(/t\.me\/[^\s]+/gi, "");
+  clean = clean.replace(/@\w+/g, "").replace(/#\w+/g, "");
+  return clean.trim();
+}
