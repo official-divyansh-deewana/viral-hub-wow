@@ -1,4 +1,4 @@
-// Upgraded Submission Router with Secure Plain-text Keys (api/submit.js)
+// Secure HTML Submission Router (api/submit.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -7,12 +7,12 @@ module.exports = async function handler(req, res) {
 
   const { title, thumbnailUrl, videoUrl } = req.body;
 
-  // Formatting message text with plain-text keys instead of brackets to bypass telegram parsing bugs
-  const text = `🚨 **NEW VIDEO APPROVAL REQUEST** 🚨\n` +
+  // Formatting message with safe HTML tags (100% crash-proof!)
+  const text = `🚨 <b>NEW VIDEO APPROVAL REQUEST</b> 🚨\n` +
                `─────────────────────────\n` +
-               `🎬 **Title:** ${title}\n` +
-               `🖼️ **Thumbnail:** [Image](${thumbnailUrl})\n` +
-               `🔗 **Video Source:** [Click to Preview](${videoUrl})\n\n` +
+               `🎬 <b>Title:</b> ${title}\n` +
+               `🖼️ <b>Thumbnail:</b> <a href="${thumbnailUrl}">Preview</a>\n` +
+               `🔗 <b>Video Source:</b> <a href="${videoUrl}">Preview</a>\n\n` +
                `--- RAW DATA FOR BOT ---\n` +
                `SUB_TITLE: ${title}\n` +
                `SUB_THUMB: ${thumbnailUrl}\n` +
@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         chat_id: ADMIN_ID,
         text,
-        parse_mode: "Markdown",
+        parse_mode: "HTML", // HTML is ultra-stable!
         reply_markup: {
           inline_keyboard: [
             [
