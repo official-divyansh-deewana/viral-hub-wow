@@ -27,7 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadToggleStates();
     fetchVideos();
     setupPlayerListeners();
-    disableVideoLongPress(); // Disable downloads completely
+    disableVideoLongPress(); // Disable downloads
 });
 
 function initTheme() {
@@ -54,7 +54,7 @@ function toggleSearchHistoryPause() {
 function toggleOriginalThumbnails() {
     isOriginalThumbnailShow = document.getElementById('originalThumbnailShow').checked;
     localStorage.setItem('vh_orig_thumb', JSON.stringify(isOriginalThumbnailShow));
-    renderVideos(videos); // Instant Re-render
+    renderVideos(videos); // Re-render feed
 }
 
 function disableVideoLongPress() {
@@ -86,7 +86,7 @@ async function renderVideos(items, sortByViews = false) {
 
     let sorted = [...items];
 
-    // If sorting by views is requested
+    // Sorting Logics
     if (sortByViews) {
         const videoDataWithViews = await Promise.all(sorted.map(async (v) => {
             const views = await fetchLiveViews(v.id);
@@ -103,7 +103,6 @@ async function renderVideos(items, sortByViews = false) {
         const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
         const hasIframeUrl = url.includes('iframe') || url.includes('embed') || url.includes('dood') || url.includes('streamwish') || url.includes('t.me');
 
-        // Check original thumbnail show
         let thumbElement = `<img src="${video.thumbnailUrl}" alt="">`;
         if (isOriginalThumbnailShow && !hasIframeUrl && video.videoUrl) {
             thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
@@ -129,7 +128,7 @@ async function renderVideos(items, sortByViews = false) {
     });
     grid.innerHTML = htmlCards.join('');
 
-    // Load view counts asynchronously in background to prevent hanging
+    // Load view counts asynchronously in background (Proxy Enabled)
     sorted.forEach(async (video) => {
         const views = await fetchLiveViews(video.id);
         const viewSpan = document.getElementById(`card-views-${video.id}`);
@@ -139,19 +138,13 @@ async function renderVideos(items, sortByViews = false) {
     });
 }
 
-// 👁️ Live Serverless Counter API (with 1-second safety timeout)
+// 👁️ Live Server-Side Proxy Views Counter (Bypasses all adblockers and CORS!)
 async function fetchLiveViews(videoId) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1000); // Fail fast
-
     try {
-        const response = await fetch(`https://api.counterapi.dev/v1/viralhub_views/${videoId}`, {
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        const response = await fetch(`/api/views?id=${videoId}`);
         if (response.ok) {
             const data = await response.json();
-            return data.value;
+            return data.views;
         }
         return 0;
     } catch (e) {
@@ -161,13 +154,13 @@ async function fetchLiveViews(videoId) {
 
 async function incrementLiveViews(videoId) {
     try {
-        await fetch(`https://api.counterapi.dev/v1/viralhub_views/${videoId}/up`);
+        await fetch(`/api/views?id=${videoId}&action=up`, { method: "POST" });
     } catch (e) {
         console.error(e);
     }
 }
 
-// Open Player Screen (Starts with hidden view)
+// Open Player Screen
 async function openVideoPlayer(videoId) {
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
@@ -236,7 +229,6 @@ async function renderSuggestedVideos(currentId) {
         </div>
     `).join('');
 
-    // Load suggested view counts asynchronously
     filtered.slice(0, 8).forEach(async (video) => {
         const views = await fetchLiveViews(video.id);
         const viewSpan = document.getElementById(`suggested-views-${video.id}`);
@@ -249,11 +241,19 @@ async function renderSuggestedVideos(currentId) {
 function switchTab(tabName) {
     const title = document.getElementById('sectionTitle');
     const gridView = document.getElementById('gridView');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     
     gridView.style.display = "block";
     document.getElementById('playerView').style.display = "none";
     document.getElementById('backBtn').classList.remove('visible');
     mainVideo.pause();
+
+    // Toggle Clear All History button only on History Tab
+    if (tabName === 'history') {
+        clearHistoryBtn.style.display = "flex";
+    } else {
+        clearHistoryBtn.style.display = "none";
+    }
 
     if (tabName === 'all') {
         title.innerText = "Latest Videos";
@@ -263,10 +263,21 @@ function switchTab(tabName) {
         renderVideos(videos.filter(v => favorites.includes(v.id)), false);
     } else if (tabName === 'most_viewed') {
         title.innerText = "Most Viewed Videos 🔥";
-        renderVideos(videos, true); // Sort by Views
+        renderVideos(videos, true); 
     } else if (tabName === 'history') {
         title.innerText = "Recently Viewed";
         renderVideos(historyList.map(id => videos.find(v => v.id === id)).filter(Boolean), false);
+    }
+}
+
+// 🧹 Clear All Watch History with Confirmation Pop-up
+function clearAllHistory() {
+    const confirmation = confirm("Are you sure you want to delete your entire watch history? This cannot be undone.");
+    if (confirmation) {
+        historyList = [];
+        localStorage.setItem('vh_history', JSON.stringify(historyList));
+        showToast("Watch history cleared successfully!");
+        switchTab('history'); // Refresh view
     }
 }
 
@@ -276,6 +287,32 @@ function showGridView() {
     document.getElementById('backBtn').classList.remove('visible');
     mainVideo.pause();
     iframeContainer.innerHTML = "";
+    
+    // Auto unlock landscape mode on back
+    if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+    }
+}
+
+// 📱 Responsive Mobile Landscape Lock Engine on Fullscreen
+async function toggleFullscreen() {
+    const container = document.getElementById('playerContainer');
+    try {
+        if (!document.fullscreenElement) {
+            await container.requestFullscreen();
+            // Automatically lock device to landscape mode when entered fullscreen
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock('landscape').catch(() => {});
+            }
+        } else {
+            await document.exitFullscreen();
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        }
+    } catch (e) {
+        console.error("Fullscreen lock error: ", e);
+    }
 }
 
 function toggleSearchOverlay() {
@@ -288,7 +325,7 @@ function filterVideosFromBottom(event) {
     renderVideos(filtered);
 }
 
-// Submissions
+// Submissions Forms
 async function handleContactSubmission(event) {
     event.preventDefault();
     const name = document.getElementById('contactName').value;
