@@ -1,7 +1,8 @@
+// Universal CommonJS Version (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(200).send("Bot is active.");
   }
@@ -16,18 +17,23 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).send("OK");
-}
+};
 
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const userId = message.from.id;
 
-  if (userId !== ADMIN_ID) return;
+  // एडमिन वेरिफिकेशन
+  if (userId !== ADMIN_ID) {
+    // अगर आपका Telegram ID मैच नहीं होगा, तो बॉट यहाँ से आगे काम नहीं करेगा
+    await sendTelegramMessage(chatId, `⚠️ Unauthorized User! Your ID: ${userId}`);
+    return;
+  }
 
   const text = message.text || "";
 
   if (text === "/start") {
-    await sendTelegramMessage(chatId, "👋 **Viral Hub Webhook Engine Online!**\n\nभेजे गए वीडियो अब बिना किसी सर्वर के सीधा वेबसाइट पर अपलोड होंगे।");
+    await sendTelegramMessage(chatId, "👋 **Viral Hub Webhook Engine Online!**\n\nभेजे गए वीडियो अब बिना किसी सर्वर के सीधा वेबसाइट पर अपलोड होंगे.");
     return;
   }
 
