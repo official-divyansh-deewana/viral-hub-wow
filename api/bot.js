@@ -1,10 +1,10 @@
-// Universal CommonJS Version (api/bot.js)
+// Premium Universal Serverless Bot Engine (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(200).send("Bot is active.");
+    return res.status(200).send("Bot is online.");
   }
 
   try {
@@ -25,18 +25,92 @@ async function handleMessage(message) {
 
   // एडमिन वेरिफिकेशन
   if (userId !== ADMIN_ID) {
-    // अगर आपका Telegram ID मैच नहीं होगा, तो बॉट यहाँ से आगे काम नहीं करेगा
-    await sendTelegramMessage(chatId, `⚠️ Unauthorized User! Your ID: ${userId}`);
+    await sendTelegramMessage(chatId, `⚠️ **Access Denied!**\nYour ID: \`${userId}\` is not registered as Admin.`);
     return;
   }
 
   const text = message.text || "";
 
+  // 1. /start Command (Beautiful Premium UI Commands Menu)
   if (text === "/start") {
-    await sendTelegramMessage(chatId, "👋 **Viral Hub Webhook Engine Online!**\n\nभेजे गए वीडियो अब बिना किसी सर्वर के सीधा वेबसाइट पर अपलोड होंगे.");
+    const welcomeMsg = `⚡️ **VIRAL HUB CONTROL PANEL** ⚡️\n` +
+                       `─────────────────────────\n` +
+                       `Welcome back, Administrator! Here are your dynamic commands:\n\n` +
+                       `📊 **/stats** — वेबसाइट के कुल वीडियो और स्टेट्स देखें\n` +
+                       `✅ **/done** — डेटाबेस सिंक होने की पुष्टि करें\n` +
+                       `❔ **/help** — नो-लिमिट अपलोड करने का गाइड\n\n` +
+                       `📤 **वीडियो अपलोड करने के तरीके:**\n` +
+                       `🔹 **तरीका 1 (कम साइज़ < 20MB):** सीधा कोई भी वीडियो यहाँ फॉरवर्ड करें.\n` +
+                       `🔹 **तरीका 2 (नो-लिमिट - कोई भी साइज़):** किसी भी डायरेक्ट .mp4 लिंक को इस फॉर्मेट में भेजें:\n` +
+                       `\`https://link.com/video.mp4 | वीडियो का नाम\``;
+    await sendTelegramMessage(chatId, welcomeMsg);
     return;
   }
 
+  // 2. /stats Command (Fetch current db stats)
+  if (text === "/stats") {
+    await sendTelegramMessage(chatId, "📊 *डेटाबेस से संपर्क किया जा रहा है...*");
+    try {
+      const db = await fetchCurrentDatabase();
+      const statsMsg = `📈 **VIRAL HUB STATS** 📈\n` +
+                       `─────────────────────────\n` +
+                       `🔹 **कुल वीडियो लाइव:** \`${db.length}\` वीडियो\n` +
+                       `🔹 **डेटाबेस स्थिति:** ऑनलाइन और सक्रिय\n` +
+                       `🔹 **नवीनतम वीडियो:** ${db[0] ? `*${db[0].title}*` : "कोई नहीं"}\n` +
+                       `🔹 **वेबसाइट सर्वर:** Vercel (Serverless)`;
+      await sendTelegramMessage(chatId, statsMsg);
+    } catch (err) {
+      await sendTelegramMessage(chatId, `❌ **Error**: सांख्यिकी लोड करने में विफल: ${err.message}`);
+    }
+    return;
+  }
+
+  // 3. /done Command
+  if (text === "/done") {
+    await sendTelegramMessage(chatId, "🎉 **वेबसाइट पूरी तरह सिंक हो चुकी है!**\nआपकी लाइव वेबसाइट पर जाकर बदलाव देख सकते हैं.");
+    return;
+  }
+
+  // 4. /help Command
+  if (text === "/help") {
+    const helpMsg = `ℹ️ **नो-लिमिट वीडियो अपलोड गाइड** ℹ️\n` +
+                    `─────────────────────────\n` +
+                    `यदि आप 20MB से बड़ी या सुरक्षित चैनल की फाइलें अपलोड करना चाहते हैं, तो इन स्टेप्स का पालन करें:\n\n` +
+                    `1️⃣ टेलीग्राम पर किसी भी Direct Link Generator Bot का उपयोग करके वीडियो का \`.mp4\` लिंक निकालें.\n` +
+                    `2️⃣ उस लिंक को कॉपी करके हमारे बॉट को इस प्रकार भेजें:\n` +
+                    `\`https://yourdomain.com/movie.mp4 | My Beautiful Video\`\n\n` +
+                    `आपका बॉट बिना किसी लोडिंग टाइम के इसे सीधा वेबसाइट पर लाइव कर देगा!`;
+    await sendTelegramMessage(chatId, helpMsg);
+    return;
+  }
+
+  // 5. Method 2 Handler (Detect URL | Title format)
+  if (text.includes("|") && (text.startsWith("http://") || text.startsWith("https://"))) {
+    await sendTelegramMessage(chatId, "⏳ **Processing**: डायरेक्ट लिंक को डेटाबेस में जोड़ा जा रहा है...");
+    try {
+      const parts = text.split("|");
+      const videoUrl = parts[0].trim();
+      const title = parts[1].trim();
+      const placeholderThumb = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop";
+
+      const newEntry = {
+        id: `vid-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        title: title,
+        videoUrl: videoUrl,
+        thumbnailUrl: placeholderThumb,
+        timestamp: Date.now(),
+        duration: "Direct Stream"
+      };
+
+      await commitToGitHub(newEntry);
+      await sendTelegramMessage(chatId, `✅ **Success**: *${title}* बिना किसी साइज लिमिट के वेबसाइट पर लाइव हो गया है!`);
+    } catch (err) {
+      await sendTelegramMessage(chatId, `❌ **Error**: लिंक जोड़ने में समस्या आई: ${err.message}`);
+    }
+    return;
+  }
+
+  // 6. Method 1 Handler (Direct Video file < 20MB)
   let videoFile = null;
   let title = "Untitled Highlight";
 
@@ -49,13 +123,15 @@ async function handleMessage(message) {
   }
 
   if (videoFile) {
-    await sendTelegramMessage(chatId, "⏳ **Processing**: वीडियो का सोर्स लिंक जनरेट हो रहा है...");
+    await sendTelegramMessage(chatId, "⏳ **Processing**: वीडियो का डायरेक्ट लिंक निकाला जा रहा है...");
 
     try {
       const fileResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getFile?file_id=${videoFile.file_id}`);
       const fileData = await fileResponse.json();
 
-      if (!fileData.ok) throw new Error("Telegram API Error");
+      if (!fileData.ok) {
+        throw new Error(fileData.description || "Telegram API Error");
+      }
 
       const directVideoUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${fileData.result.file_path}`;
       const placeholderThumb = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop";
@@ -71,10 +147,10 @@ async function handleMessage(message) {
 
       await sendTelegramMessage(chatId, "💾 **Saving**: डेटाबेस अपडेट किया जा रहा है...");
       await commitToGitHub(newEntry);
-      await sendTelegramMessage(chatId, `✅ **Success**: *${title}* सीधा वेबसाइट पर अपडेट हो चुका है!`);
+      await sendTelegramMessage(chatId, `✅ **Success**: *${title}* सीधा वेबसाइट पर लाइव हो चुका है!`);
 
     } catch (err) {
-      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}`);
+      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}\n\n💡 _टिप: यदि वीडियो 20MB से बड़ा है, तो /help का उपयोग करके इसे बिना लिमिट के अपलोड करें._`);
     }
   }
 }
@@ -85,6 +161,28 @@ async function sendTelegramMessage(chatId, text) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" })
   });
+}
+
+async function fetchCurrentDatabase() {
+  const owner = process.env.GITHUB_REPO_OWNER;
+  const repo = process.env.GITHUB_REPO_NAME;
+  const token = process.env.GITHUB_TOKEN;
+  const path = "videos.json";
+
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const headers = {
+    "Authorization": `token ${token}`,
+    "User-Agent": "Vercel-Bot",
+    "Accept": "application/vnd.github.v3+json"
+  };
+
+  const response = await fetch(url, { headers });
+  if (response.status === 200) {
+    const data = await response.json();
+    const decoded = Buffer.from(data.content, "base64").toString("utf-8");
+    return JSON.parse(decoded);
+  }
+  return [];
 }
 
 async function commitToGitHub(newVideo) {
