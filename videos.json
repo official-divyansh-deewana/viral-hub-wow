@@ -1,5 +1,13 @@
 [
   {
+    "id": "vid-1779818281481-568",
+    "title": "Untitled Highlight",
+    "videoUrl": "https://api.telegram.org/file/bot8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A/videos/file_17.mp4",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
+    "timestamp": 1779818281481,
+    "duration": "1:14"
+  },
+  {
     "id": "vid-1779818279044-22",
     "title": "Untitled Highlight",
     "videoUrl": "https://api.telegram.org/file/bot8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A/videos/file_16.mp4",
