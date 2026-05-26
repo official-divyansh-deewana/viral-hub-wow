@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viral Hub - Premium Video Stream</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Viral Hub - Premium Stream</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="nav-container">
-            <div class="nav-left">
+
+    <!-- Top Navigation Header -->
+    <header class="top-header">
+        <div class="header-container">
+            <div class="header-left">
                 <button class="back-btn" id="backBtn" onclick="showGridView()">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
@@ -20,27 +22,15 @@
                     <span>Viral Hub</span>
                 </a>
             </div>
-            <div class="search-bar">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="Search viral videos..." onkeyup="filterVideos()">
-            </div>
-            <div class="nav-right">
-                <button class="tab-btn active" id="tabAll" onclick="switchTab('all')">
-                    <i class="fa-solid fa-compass"></i><span>Explore</span>
-                </button>
-                <button class="tab-btn" id="tabFav" onclick="switchTab('favorites')">
-                    <i class="fa-solid fa-heart"></i><span>Favorites</span>
-                </button>
-                <button class="tab-btn" id="tabHist" onclick="switchTab('history')">
-                    <i class="fa-solid fa-clock-rotate-left"></i><span>History</span>
-                </button>
-                <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
-                    <i class="fa-solid fa-moon"></i>
+            <div class="header-right">
+                <button class="menu-trigger-btn" onclick="toggleMenuDrawer()">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
     </header>
-    <main>
+
+    <main class="main-content">
         <!-- Grid View Section -->
         <section id="gridView" class="view-section active-view">
             <div class="grid-header">
@@ -49,60 +39,186 @@
             <div class="video-grid" id="videoGrid"></div>
         </section>
 
-        <!-- Player View Section (Suggested Videos Split Screen) -->
+        <!-- Mobile-First Video Player Section -->
         <section id="playerView" class="view-section player-view">
-            <div class="player-layout">
-                <!-- Left Side: Player & Details -->
-                <div class="player-main-column">
-                    <div class="player-container" id="playerContainer">
-                        <!-- Direct Video Element -->
-                        <video class="video-element" id="mainVideo" preload="metadata" playsinline></video>
-                        
-                        <!-- Iframe Video Container (Dynamic Embeds) -->
-                        <div id="iframeContainer" class="iframe-container" style="display: none;"></div>
+            <div class="player-container" id="playerContainer">
+                <video class="video-element" id="mainVideo" preload="metadata" playsinline></video>
+                <div id="iframeContainer" class="iframe-container" style="display: none;"></div>
 
-                        <div class="play-animation-overlay" id="playOverlay">
-                            <i class="fa-solid fa-play" style="color: #fff; font-size: 2.5rem;"></i>
-                        </div>
-                        <div class="custom-controls" id="playerControls">
-                            <div class="progress-bar-container" id="progressContainer">
-                                <div class="progress-bar-fill" id="progressFill"></div>
-                            </div>
-                            <div class="controls-row">
-                                <div class="controls-left">
-                                    <button class="control-btn" id="playPauseBtn" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
-                                    <div class="volume-container">
-                                        <button class="control-btn" id="volumeBtn" onclick="toggleMute()"><i class="fa-solid fa-volume-high"></i></button>
-                                        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.1" value="1">
-                                    </div>
-                                    <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
-                                </div>
-                                <div class="controls-right">
-                                    <button class="control-btn" id="speedBtn" onclick="cycleSpeed()"><span>1.0x</span></button>
-                                    <button class="control-btn" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="play-animation-overlay" id="playOverlay">
+                    <i class="fa-solid fa-play" style="color: #fff; font-size: 2.5rem;"></i>
+                </div>
+                <div class="custom-controls" id="playerControls">
+                    <div class="progress-bar-container" id="progressContainer">
+                        <div class="progress-bar-fill" id="progressFill"></div>
                     </div>
-                    <div class="player-details">
-                        <h1 class="player-title" id="playerTitle">Video Title</h1>
-                        <div class="player-meta">
-                            <span><i class="fa-regular fa-clock"></i> Recently added</span>
-                            <button class="action-icon-btn" id="playerFavBtn">
-                                <i class="fa-regular fa-heart"></i> Add to Favorites
-                            </button>
+                    <div class="controls-row">
+                        <div class="controls-left">
+                            <button class="control-btn" id="playPauseBtn" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
+                            <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+                        </div>
+                        <div class="controls-right">
+                            <button class="control-btn" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Right Side: Up Next / Suggested Videos Column -->
-                <div class="player-sidebar-column">
-                    <h3 class="sidebar-title">Suggested Videos</h3>
-                    <div class="sidebar-grid" id="suggestedGrid"></div>
+            </div>
+            <div class="player-details">
+                <h1 class="player-title" id="playerTitle">Video Title</h1>
+                <div class="player-meta-info">
+                    <span id="playerViewsCount"><i class="fa-regular fa-eye"></i> 0 views</span>
+                    <button class="action-icon-btn" id="playerFavBtn">
+                        <i class="fa-regular fa-heart"></i>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Suggested Videos Under Player (Mobile View Flow) -->
+            <div class="suggested-container">
+                <h3 class="suggested-title">More Videos</h3>
+                <div class="suggested-grid" id="suggestedGrid"></div>
             </div>
         </section>
     </main>
+
+    <!-- Sliding Sidebar Menu Drawer -->
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenuDrawer()"></div>
+    <div class="menu-drawer" id="menuDrawer">
+        <div class="drawer-header">
+            <h3>Menu</h3>
+            <button class="close-drawer-btn" onclick="toggleMenuDrawer()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="drawer-content">
+            <button class="drawer-item" onclick="openModal('contactModal')"><i class="fa-solid fa-envelope"></i> Contact Us</button>
+            <button class="drawer-item" onclick="openModal('uploadModal')"><i class="fa-solid fa-cloud-arrow-up"></i> Submit Video</button>
+            <button class="drawer-item" onclick="openModal('privacyModal')"><i class="fa-solid fa-shield-halved"></i> Privacy Policy</button>
+            
+            <div class="drawer-divider"></div>
+            
+            <div class="toggle-container">
+                <span class="toggle-label"><i class="fa-solid fa-eye-slash"></i> Pause Watch History</span>
+                <label class="switch">
+                    <input type="checkbox" id="pauseWatchHistory" onchange="toggleWatchHistoryPause()">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="toggle-container">
+                <span class="toggle-label"><i class="fa-solid fa-toggle-on"></i> Pause Search History</span>
+                <label class="switch">
+                    <input type="checkbox" id="pauseSearchHistory" onchange="toggleSearchHistoryPause()">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals Section -->
+    <!-- 1. Contact Us Modal -->
+    <div class="modal" id="contactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Contact Us</h3>
+                <button class="close-modal-btn" onclick="closeModal('contactModal')">&times;</button>
+            </div>
+            <form id="contactForm" onsubmit="handleContactSubmission(event)">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="contactName" required placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Number (with country code)</label>
+                    <input type="text" id="contactPhone" required placeholder="+91 9876543210">
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="contactMessage" required rows="4" placeholder="Your message..."></textarea>
+                </div>
+                <button type="submit" class="submit-form-btn">Send Message</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Public Video Submission Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Submit Your Video</h3>
+                <button class="close-modal-btn" onclick="closeModal('uploadModal')">&times;</button>
+            </div>
+            <form id="uploadForm" onsubmit="handleVideoSubmission(event)">
+                <div class="form-group">
+                    <label>Video Title</label>
+                    <input type="text" id="submitTitle" required placeholder="Enter video title">
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail Image URL</label>
+                    <input type="url" id="submitThumb" placeholder="https://example.com/thumb.jpg">
+                </div>
+                <div class="form-group">
+                    <label>Choose Video File (.MP4 only)</label>
+                    <input type="file" id="submitFile" accept="video/mp4" onchange="handleFileSelected(event)">
+                </div>
+                <div class="or-divider"><span>OR</span></div>
+                <div class="form-group">
+                    <label>Paste Video URL (Direct Stream Link)</label>
+                    <input type="url" id="submitUrl" placeholder="https://example.com/video.mp4" oninput="handleUrlInput()">
+                </div>
+                <button type="submit" class="submit-form-btn">Submit for Approval</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Privacy Policy Modal -->
+    <div class="modal" id="privacyModal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>Privacy Policy</h3>
+                <button class="close-modal-btn" onclick="closeModal('privacyModal')">&times;</button>
+            </div>
+            <div class="policy-body" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);">
+                <p><strong>Effective Date: May 26, 2026</strong></p><br>
+                <p>Welcome to Viral Hub. Your privacy is paramount. This policy outlines how we handle data:</p><br>
+                <p><strong>1. Information Collection:</strong> We do not track or store personal browsing records on any remote servers. Your Watch History and Favorites lists are saved locally inside your device's browser cache (Local Storage).</p><br>
+                <p><strong>2. Search and Playback Controls:</strong> We offer settings inside the menu drawer to pause your search and watch history instantly, preventing any local caching.</p><br>
+                <p><strong>3. Third-Party Services:</strong> Views are counted anonymously using open-source serverless counters. Video content linked on this platform might be subject to external platforms' terms (like Telegram).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Input Overlay for Mobile Bottom Bar -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-overlay-container">
+            <input type="text" id="bottomSearchInput" placeholder="Type to search..." onkeyup="filterVideosFromBottom(event)">
+            <button class="close-search-overlay" onclick="toggleSearchOverlay()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+
+    <!-- Bottom Mobile-Style Navigation Bar -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" id="navExplore" onclick="switchTab('all'); setActiveNavItem('navExplore')">
+            <i class="fa-solid fa-compass"></i>
+            <span>Explore</span>
+        </button>
+        <button class="nav-item" id="navFavorites" onclick="switchTab('favorites'); setActiveNavItem('navFavorites')">
+            <i class="fa-solid fa-heart"></i>
+            <span>Favorites</span>
+        </button>
+        <button class="nav-item search-mid-btn" onclick="toggleSearchOverlay()">
+            <div class="search-circle">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+        </button>
+        <button class="nav-item" id="navHistory" onclick="switchTab('history'); setActiveNavItem('navHistory')">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>History</span>
+        </button>
+    </nav>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toastMessage">Action completed successfully!</div>
+
     <script src="app.js"></script>
 </body>
 </html>
