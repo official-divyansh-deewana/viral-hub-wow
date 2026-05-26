@@ -1,4 +1,4 @@
-// Universal Serverless Admin Bot & Approval Engine (api/bot.js)
+// Universal Serverless Admin Bot & Metadata Parser Engine (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -10,11 +10,11 @@ module.exports = async function handler(req, res) {
   try {
     const payload = req.body;
     
-    // 1. Inline Buttons (Approval/Rejection) Callbacks हैंडलर
+    // 1. Handling Button Callbacks (Approve / Reject Action)
     if (payload.callback_query) {
       await handleCallback(payload.callback_query);
     } 
-    // 2. एडमिन मैसेज हैंडलर
+    // 2. Handling Commands or Messages
     else if (payload.message) {
       await handleMessage(payload.message);
     }
@@ -30,18 +30,18 @@ async function handleMessage(message) {
   const userId = message.from.id;
   const text = message.text || "";
 
-  // केवल ओनर (Admin) ही इस बॉट का उपयोग कर सकता है
+  // Only Owner is authorized
   if (userId !== ADMIN_ID) {
-    await sendTelegramMessage(chatId, "⚠️ **Access Denied!** This bot is private.");
+    await sendTelegramMessage(chatId, "⚠️ **Access Denied!** This bot is completely private.");
     return;
   }
 
   if (text === "/start") {
-    await sendTelegramMessage(chatId, "⚡ **Viral Hub Admin Core Active**\n\nभेजे गए वीडियो अब सिंक होंगे.");
+    await sendTelegramMessage(chatId, "⚡ **Viral Hub Admin Core v3.0 Active**\n\nसफलतापूर्वक सिंक मोड ऑन है.");
     return;
   }
 
-  // Admin Video Forward (No-Limit Bypass)
+  // Admin Direct Video Forward (No-Limit Bypass)
   if (message.forward_from_chat && message.forward_from_chat.username && (message.video || message.document)) {
     const channelUsername = message.forward_from_chat.username;
     const messageId = message.forward_from_message_id;
@@ -65,32 +65,44 @@ async function handleMessage(message) {
 async function handleCallback(query) {
   const chatId = query.message.chat.id;
   const messageId = query.message.message_id;
+  const messageText = query.message.text || "";
   const data = query.data;
 
-  // अप्रूवल लॉजिक
-  if (data.startsWith("approve_")) {
-    const base64Data = data.replace("approve_", "");
-    const decodedVideo = JSON.parse(Buffer.from(base64Data, "base64").toString("utf-8"));
-
+  // 1. Approve Callback - Extract from secure text wrappers to bypass 64-byte Telegram limit
+  if (data === "approve_user_sub") {
     try {
-      await commitToGitHub(decodedVideo);
+      const title = messageText.split("[TITLE]")[1].split("[/TITLE]")[0].trim();
+      const thumb = messageText.split("[THUMB]")[1].split("[/THUMB]")[0].trim();
+      const videoUrl = messageText.split("[URL]")[1].split("[/URL]")[0].trim();
+
+      const newVideo = {
+        id: `vid-${Date.now()}`,
+        title: title,
+        videoUrl: videoUrl,
+        thumbnailUrl: thumb,
+        timestamp: Date.now(),
+        duration: "User Upload"
+      };
+
+      await commitToGitHub(newVideo);
+      
       await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
           message_id: messageId,
-          text: `✅ **APPROVED & LIVE**\n\n🎬 *Title:* ${decodedVideo.title}\n🔗 *Url:* ${decodedVideo.videoUrl}`,
+          text: `✅ **APPROVED & GO LIVE**\n\n🎬 *Title:* ${title}\n🔗 *Url:* [Video Stream](${videoUrl})`,
           parse_mode: "Markdown"
         })
       });
     } catch (e) {
-      await sendTelegramMessage(chatId, `❌ **Error**: ${e.message}`);
+      await sendTelegramMessage(chatId, `❌ **Error Parsing Metadata**: ${e.message}`);
     }
   }
 
-  // रिजेक्शन लॉजिक
-  if (data.startsWith("reject_")) {
+  // 2. Reject Callback
+  if (data === "reject_user_sub") {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -146,8 +158,4 @@ async function commitToGitHub(newVideo) {
 
 function sanitizeTitle(rawTitle) {
   if (!rawTitle) return `VID_${Date.now()}.mp4`;
-  let clean = rawTitle.replace(/https?:\/\/[^\s]+/gi, "");
-  clean = clean.replace(/t\.me\/[^\s]+/gi, "");
-  clean = clean.replace(/@\w+/g, "").replace(/#\w+/g, "");
-  return clean.trim();
-}
+  let clean = rawTitle
