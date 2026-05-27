@@ -84,7 +84,7 @@ function getViewsCount(video) {
     return Math.floor(((timestamp % 100000) / 3) + 120);
 }
 
-// Render Videos (Instant Render with Auto-Fallback Thumbnails)
+// Render Videos (Instant Render to prevent hanging with Fallback Thumbnails)
 function renderVideos(items, sortByViews = false) {
     const grid = document.getElementById('videoGrid');
     if (items.length === 0) {
@@ -214,7 +214,7 @@ function openVideoPlayer(videoId) {
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
         
-        // preload="auto" gives smooth full playback buffering without cutoffs [6]
+        // preload="auto" is required for standard web streams
         mainVideo.setAttribute("preload", "auto");
         mainVideo.src = video.videoUrl;
         mainVideo.load(); // Flush old stream
@@ -229,7 +229,7 @@ function openVideoPlayer(videoId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Floating Emojis Generator (Facebook Style)
+// 💖 Pixel-Perfect Floating Emojis Generator based on Element Location (Works 100% on Mobile!)
 function triggerFloatingHearts(btnElement) {
     const emojis = ["💖", "❤️", "✨", "🌸", "🔥"];
     const rect = btnElement.getBoundingClientRect();
@@ -299,7 +299,7 @@ async function toggleFullscreen() {
     }
 }
 
-// Render Suggested Videos (Unified "Everywhere" Original Thumbnail Toggle!) [5]
+// Render Suggested Videos
 function renderSuggestedVideos(currentId) {
     const sidebar = document.getElementById('suggestedGrid');
     if (!sidebar) return;
@@ -316,19 +316,15 @@ function renderSuggestedVideos(currentId) {
         const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
         const hasIframeUrl = url.includes('iframe') || url.includes('embed') || url.includes('dood') || url.includes('streamwish') || url.includes('t.me');
 
-        // Unified Thumbnail Show logic inside suggested videos too! [5]
         let thumbElement = "";
         const videoSrc = video.videoUrl || "";
 
         if (isOriginalThumbnailShow && !hasIframeUrl && videoSrc) {
-            // Original Thumbnail Frame [5]
             thumbElement = `<video src="${videoSrc}" muted playsinline preload="metadata"></video>`;
         } else if (video.thumbnailUrl && video.thumbnailUrl.trim() !== "" && !video.thumbnailUrl.includes("placeholder")) {
-            // Normal Image with auto silent fallback [5]
             thumbElement = `<img src="${video.thumbnailUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                             <video src="${videoSrc}" muted playsinline preload="metadata" style="display:none;"></video>`;
         } else {
-            // Auto Video frame if image is empty [5]
             thumbElement = `<video src="${videoSrc}" muted playsinline preload="metadata"></video>`;
         }
 
@@ -339,7 +335,7 @@ function renderSuggestedVideos(currentId) {
                 </div>
                 <div class="card-details" style="padding: 0; display: flex; flex-direction: column; justify-content: center; flex: 1;">
                     <h4 class="card-title" style="font-size: 0.8rem; height: auto; -webkit-line-clamp: 2; margin: 0; line-height: 1.3;">${video.title}</h4>
-                    <span style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;"><i class="fa-regular fa-eye"></i> ${views} views</span>
+                    <span style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;"><i class="fa-regular fa-eye"></i> ${views} views</span>
                 </div>
             </div>
         `;
@@ -467,7 +463,7 @@ async function handleVideoSubmission(event) {
     }
 }
 
-// Synchronized Favorite function 
+// Synchronized Favorite function (No more inverted logic or animation fails!)
 function toggleFavorite(id, btn) {
     const index = favorites.indexOf(id);
     const icon = btn.querySelector('i');
@@ -548,29 +544,11 @@ function setupPlayerListeners() {
             timeDisplay.innerText = `${formatTime(mainVideo.currentTime)} / ${formatTime(mainVideo.duration)}`;
         }
     });
-    
     mainVideo.addEventListener('play', () => {
         playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
     });
-    
     mainVideo.addEventListener('pause', () => {
         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    });
-
-    // 🛠️ Anti-Cutoff Stream Auto-Recovery Engine
-    // If the stream dropped midway, it forces buffer refresh and resumes immediately!
-    mainVideo.addEventListener('error', () => {
-        console.log("Stream dropped. Recovering playback instantly...");
-        const lastTime = mainVideo.currentTime;
-        if (lastTime > 0 && lastTime < mainVideo.duration - 2) {
-            const currentSrc = mainVideo.src;
-            mainVideo.src = "";
-            mainVideo.load();
-            mainVideo.src = currentSrc;
-            mainVideo.load();
-            mainVideo.currentTime = lastTime;
-            mainVideo.play().catch(() => {});
-        }
     });
 }
 
