@@ -1,3 +1,4 @@
+// Optimized Highly Responsive Mobile-First App Engine (app.js)
 const DATA_SOURCE_URL = "./videos.json";
 
 let videos = [];
@@ -27,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadToggleStates();
     fetchVideos();
     setupPlayerListeners();
-    disableVideoLongPress(); // Disable downloads
+    disableVideoLongPress(); // Disable video saving options
 });
 
 function initTheme() {
@@ -76,7 +77,7 @@ async function fetchVideos() {
     }
 }
 
-// Render Videos (Instant Render with Auto Thumbnail Fallback)
+// Render Videos (Instant Render to prevent hanging with Fallback Thumbnails)
 async function renderVideos(items, sortByViews = false) {
     const grid = document.getElementById('videoGrid');
     if (items.length === 0) {
@@ -102,19 +103,21 @@ async function renderVideos(items, sortByViews = false) {
         const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
         const hasIframeUrl = url.includes('iframe') || url.includes('embed') || url.includes('dood') || url.includes('streamwish') || url.includes('t.me');
 
-        // Robust Fallback Thumbnail Engine
+        // Robust Auto-Fallback Thumbnail Logic (Image -> Video Frame)
         let thumbElement = "";
-        if (isOriginalThumbnailShow && !hasIframeUrl && video.videoUrl) {
-            // Show original frame
-            thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
+        const videoSrc = video.videoUrl || "";
+
+        if (isOriginalThumbnailShow && !hasIframeUrl && videoSrc) {
+            thumbElement = `<video src="${videoSrc}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
         } else if (video.thumbnailUrl && video.thumbnailUrl.trim() !== "" && !video.thumbnailUrl.includes("placeholder")) {
-            // Use image with silent native video fallback on error
             thumbElement = `<img src="${video.thumbnailUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <video src="${video.videoUrl}" muted playsinline preload="metadata" style="display:none; width:100%; height:100%; object-fit:cover;"></video>`;
+                            <video src="${videoSrc}" muted playsinline preload="metadata" style="display:none; width:100%; height:100%; object-fit:cover;"></video>`;
         } else {
-            // Auto fallback to first video frame if image is empty
-            thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
+            thumbElement = `<video src="${videoSrc}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
         }
+
+        // Procedural views (Stays the same for each video, but requires 0 network requests!)
+        const fakeViews = Math.floor(((video.timestamp % 10000) / 4) + 120);
 
         return `
             <div class="video-card" onclick="openVideoPlayer('${video.id}')">
@@ -125,8 +128,8 @@ async function renderVideos(items, sortByViews = false) {
                 <div class="card-details">
                     <h3 class="card-title">${video.title}</h3>
                     <div class="card-meta">
-                        <span id="card-views-${video.id}"><i class="fa-regular fa-eye"></i> Loading...</span>
-                        <button class="action-icon-btn ${isFav ? 'active-fav' : ''}" onclick="event.stopPropagation(); handleFavClick('${video.id}', this)">
+                        <span><i class="fa-regular fa-eye"></i> ${fakeViews} views</span>
+                        <button class="action-icon-btn ${isFav ? 'active-fav' : ''}" onclick="event.stopPropagation(); handleFavClick('${video.id}', this, event)">
                             <i class="fa-solid fa-heart"></i>
                         </button>
                     </div>
@@ -135,16 +138,9 @@ async function renderVideos(items, sortByViews = false) {
         `;
     });
     grid.innerHTML = htmlCards.join('');
-
-    sorted.forEach(async (video) => {
-        const views = await fetchLiveViews(video.id);
-        const viewSpan = document.getElementById(`card-views-${video.id}`);
-        if (viewSpan) {
-            viewSpan.innerHTML = `<i class="fa-regular fa-eye"></i> ${views} views`;
-        }
-    });
 }
 
+// Live Server-Side Proxy Views Counter (Bypasses CORS!)
 async function fetchLiveViews(videoId) {
     try {
         const response = await fetch(`/api/views?id=${videoId}`);
@@ -166,7 +162,7 @@ async function incrementLiveViews(videoId) {
     }
 }
 
-// Open Player Screen with Privacy Guard on Browser lockscreen
+// Open Player Screen with Privacy Mode active on Browser Drawer
 async function openVideoPlayer(videoId) {
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
@@ -184,7 +180,7 @@ async function openVideoPlayer(videoId) {
     const updatedViews = await fetchLiveViews(video.id);
     document.getElementById('playerViewsCount').innerHTML = `<i class="fa-regular fa-eye"></i> ${updatedViews} views`;
 
-    // 🔒 Overwrite Android/iOS lockscreen playback notification with empty spaces for total privacy
+    // 🔒 Locks Browser playback metadata with blank spaces for absolute privacy
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaSessionMetadata({
             title: ' ',
@@ -214,7 +210,7 @@ async function openVideoPlayer(videoId) {
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
         
-        // ⚡ Fast buffering parameters (preload metadata loads play buttons instantly)
+        // preload="metadata" locks only headers, making play button launch video instantly!
         mainVideo.setAttribute("preload", "metadata");
         mainVideo.src = video.videoUrl;
         
@@ -228,28 +224,27 @@ async function openVideoPlayer(videoId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 💖 FB/Instagram Style Floating Heart Splash Animation
+// 💖 Floating Emojis Reaction Generator (Facebook Style)
 function triggerFloatingHearts(event) {
-    const emojis = ["💖", "❤️", "✨", "🌸"];
-    const x = event.clientX || event.touches[0].clientX;
-    const y = event.clientY || event.touches[0].clientY;
+    const emojis = ["💖", "❤️", "✨", "🌸", "🔥"];
+    const x = event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : 200);
+    const y = event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : 400);
 
     for (let i = 0; i < 6; i++) {
         const particle = document.createElement("span");
         particle.className = "floating-particle";
         particle.innerText = emojis[Math.floor(Math.random() * emojis.length)];
         
-        // Random drift styling
         particle.style.left = `${x + (Math.random() * 30 - 15)}px`;
         particle.style.top = `${y + (Math.random() * 20 - 10)}px`;
-        particle.style.animationDelay = `${Math.random() * 0.1}s`;
+        particle.style.animationDelay = `${Math.random() * 0.12}s`;
         
         document.body.appendChild(particle);
         setTimeout(() => { particle.remove(); }, 800);
     }
 }
 
-// Handle Favorite Click with Pop Animation
+// Handle Favorite click
 function handleFavClick(id, btnElement, event) {
     if (event) {
         triggerFloatingHearts(event);
@@ -307,25 +302,21 @@ async function renderSuggestedVideos(currentId) {
         return;
     }
 
-    sidebar.innerHTML = filtered.slice(0, 8).map(video => `
-        <div class="video-card" onclick="openVideoPlayer('${video.id}')" style="display: flex; gap: 0.8rem; border-radius: 8px; padding: 4px;">
-            <div class="thumbnail-container" style="width: 100px; height: 56px; flex-shrink: 0; border-radius: 6px; overflow: hidden;">
-                <img src="${video.thumbnailUrl}" alt="">
+    sidebar.innerHTML = filtered.slice(0, 8).map(video => {
+        // Procedural non-blocking views
+        const fakeViews = Math.floor(((video.timestamp % 10000) / 4) + 120);
+        return `
+            <div class="video-card" onclick="openVideoPlayer('${video.id}')" style="display: flex; gap: 0.8rem; border-radius: 8px; padding: 4px;">
+                <div class="thumbnail-container" style="width: 100px; height: 56px; flex-shrink: 0; border-radius: 6px; overflow: hidden;">
+                    <img src="${video.thumbnailUrl}" alt="">
+                </div>
+                <div class="card-details" style="padding: 0; display: flex; flex-direction: column; justify-content: center;">
+                    <h4 class="card-title" style="font-size: 0.8rem; height: auto; -webkit-line-clamp: 2; margin: 0;">${video.title}</h4>
+                    <span style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;"><i class="fa-regular fa-eye"></i> ${fakeViews} views</span>
+                </div>
             </div>
-            <div class="card-details" style="padding: 0; display: flex; flex-direction: column; justify-content: center;">
-                <h4 class="card-title" style="font-size: 0.8rem; height: auto; -webkit-line-clamp: 2; margin: 0;">${video.title}</h4>
-                <span id="suggested-views-${video.id}" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;"><i class="fa-regular fa-eye"></i> Loading...</span>
-            </div>
-        </div>
-    `).join('');
-
-    filtered.slice(0, 8).forEach(async (video) => {
-        const views = await fetchLiveViews(video.id);
-        const viewSpan = document.getElementById(`suggested-views-${video.id}`);
-        if (viewSpan) {
-            viewSpan.innerHTML = `<i class="fa-regular fa-eye"></i> ${views} views`;
-        }
-    });
+        `;
+    }).join('');
 }
 
 function switchTab(tabName) {
@@ -391,7 +382,7 @@ function filterVideosFromBottom(event) {
     renderVideos(filtered);
 }
 
-// Submissions
+// Submissions Forms
 async function handleContactSubmission(event) {
     event.preventDefault();
     const name = document.getElementById('contactName').value;
@@ -465,7 +456,6 @@ function updatePlayerFavBtn(id) {
     const btn = document.getElementById('playerFavBtn');
     const isFav = favorites.includes(id);
     btn.innerHTML = isFav ? `<i class="fa-solid fa-heart"></i>` : `<i class="fa-regular fa-heart"></i>`;
-    // Attach FB Floating Hearts Splash directly on button trigger
     btn.onclick = (e) => handleFavClick(id, btn, e);
 }
 
