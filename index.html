@@ -31,11 +31,10 @@
     </header>
 
     <main class="main-content">
-        <!-- Grid View Section -->
+        <!-- Grid View Section (Default Home View) -->
         <section id="gridView" class="view-section active-view">
             <div class="grid-header">
                 <h2 id="sectionTitle">Latest Videos</h2>
-                <!-- Premium Clear History Button (Initially Hidden) -->
                 <button id="clearHistoryBtn" class="clear-history-btn" style="display: none;" onclick="clearAllHistory()">
                     <i class="fa-solid fa-trash-can"></i> Clear All
                 </button>
@@ -43,7 +42,7 @@
             <div class="video-grid" id="videoGrid"></div>
         </section>
 
-        <!-- Mobile-First Video Player Section -->
+        <!-- Mobile-First Video Player Section (Initially Hidden) -->
         <section id="playerView" class="view-section player-view" style="display: none;">
             <div class="player-container" id="playerContainer">
                 <video class="video-element" id="mainVideo" preload="metadata" playsinline controlsList="nodownload"></video>
@@ -77,7 +76,7 @@
                 </div>
             </div>
 
-            <!-- Suggested Videos Section -->
+            <!-- Suggested Videos Under Player -->
             <div class="suggested-container">
                 <h3 class="suggested-title">More Videos</h3>
                 <div class="suggested-grid" id="suggestedGrid"></div>
@@ -101,7 +100,7 @@
             
             <div class="drawer-divider"></div>
             
-            <!-- Settings Toggles -->
+            <!-- Dynamic Switches -->
             <div class="toggle-container">
                 <span class="toggle-label"><i class="fa-solid fa-film"></i> Original Thumbnail Show</span>
                 <label class="switch">
