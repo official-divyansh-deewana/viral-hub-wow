@@ -54,7 +54,7 @@ function toggleSearchHistoryPause() {
 function toggleOriginalThumbnails() {
     isOriginalThumbnailShow = document.getElementById('originalThumbnailShow').checked;
     localStorage.setItem('vh_orig_thumb', JSON.stringify(isOriginalThumbnailShow));
-    renderVideos(videos); // Re-render feed
+    renderVideos(videos); 
 }
 
 function disableVideoLongPress() {
@@ -76,7 +76,7 @@ async function fetchVideos() {
     }
 }
 
-// Render Videos (Instant Render to prevent hanging)
+// Render Videos (Instant Render with Auto Thumbnail Fallback)
 async function renderVideos(items, sortByViews = false) {
     const grid = document.getElementById('videoGrid');
     if (items.length === 0) {
@@ -86,7 +86,6 @@ async function renderVideos(items, sortByViews = false) {
 
     let sorted = [...items];
 
-    // Sorting Logics
     if (sortByViews) {
         const videoDataWithViews = await Promise.all(sorted.map(async (v) => {
             const views = await fetchLiveViews(v.id);
@@ -103,8 +102,17 @@ async function renderVideos(items, sortByViews = false) {
         const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
         const hasIframeUrl = url.includes('iframe') || url.includes('embed') || url.includes('dood') || url.includes('streamwish') || url.includes('t.me');
 
-        let thumbElement = `<img src="${video.thumbnailUrl}" alt="">`;
+        // Robust Fallback Thumbnail Engine
+        let thumbElement = "";
         if (isOriginalThumbnailShow && !hasIframeUrl && video.videoUrl) {
+            // Show original frame
+            thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
+        } else if (video.thumbnailUrl && video.thumbnailUrl.trim() !== "" && !video.thumbnailUrl.includes("placeholder")) {
+            // Use image with silent native video fallback on error
+            thumbElement = `<img src="${video.thumbnailUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <video src="${video.videoUrl}" muted playsinline preload="metadata" style="display:none; width:100%; height:100%; object-fit:cover;"></video>`;
+        } else {
+            // Auto fallback to first video frame if image is empty
             thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
         }
 
@@ -118,7 +126,7 @@ async function renderVideos(items, sortByViews = false) {
                     <h3 class="card-title">${video.title}</h3>
                     <div class="card-meta">
                         <span id="card-views-${video.id}"><i class="fa-regular fa-eye"></i> Loading...</span>
-                        <button class="action-icon-btn ${isFav ? 'active-fav' : ''}" onclick="event.stopPropagation(); toggleFavorite('${video.id}', this)">
+                        <button class="action-icon-btn ${isFav ? 'active-fav' : ''}" onclick="event.stopPropagation(); handleFavClick('${video.id}', this)">
                             <i class="fa-solid fa-heart"></i>
                         </button>
                     </div>
@@ -137,7 +145,6 @@ async function renderVideos(items, sortByViews = false) {
     });
 }
 
-// Live Server-Side Proxy Views Counter (Bypasses CORS!)
 async function fetchLiveViews(videoId) {
     try {
         const response = await fetch(`/api/views?id=${videoId}`);
@@ -159,7 +166,7 @@ async function incrementLiveViews(videoId) {
     }
 }
 
-// Open Player Screen
+// Open Player Screen with Privacy Guard on Browser lockscreen
 async function openVideoPlayer(videoId) {
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
@@ -176,6 +183,15 @@ async function openVideoPlayer(videoId) {
     await incrementLiveViews(video.id);
     const updatedViews = await fetchLiveViews(video.id);
     document.getElementById('playerViewsCount').innerHTML = `<i class="fa-regular fa-eye"></i> ${updatedViews} views`;
+
+    // 🔒 Overwrite Android/iOS lockscreen playback notification with empty spaces for total privacy
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaSessionMetadata({
+            title: ' ',
+            artist: ' ',
+            album: ' '
+        });
+    }
 
     const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
     const isTelegramLink = url.includes("t.me/");
@@ -198,7 +214,8 @@ async function openVideoPlayer(videoId) {
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
         
-        mainVideo.setAttribute("preload", "auto");
+        // ⚡ Fast buffering parameters (preload metadata loads play buttons instantly)
+        mainVideo.setAttribute("preload", "metadata");
         mainVideo.src = video.videoUrl;
         
         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
@@ -211,7 +228,37 @@ async function openVideoPlayer(videoId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Player Custom Actions (Fully Implemented!)
+// 💖 FB/Instagram Style Floating Heart Splash Animation
+function triggerFloatingHearts(event) {
+    const emojis = ["💖", "❤️", "✨", "🌸"];
+    const x = event.clientX || event.touches[0].clientX;
+    const y = event.clientY || event.touches[0].clientY;
+
+    for (let i = 0; i < 6; i++) {
+        const particle = document.createElement("span");
+        particle.className = "floating-particle";
+        particle.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+        
+        // Random drift styling
+        particle.style.left = `${x + (Math.random() * 30 - 15)}px`;
+        particle.style.top = `${y + (Math.random() * 20 - 10)}px`;
+        particle.style.animationDelay = `${Math.random() * 0.1}s`;
+        
+        document.body.appendChild(particle);
+        setTimeout(() => { particle.remove(); }, 800);
+    }
+}
+
+// Handle Favorite Click with Pop Animation
+function handleFavClick(id, btnElement, event) {
+    if (event) {
+        triggerFloatingHearts(event);
+    } else if (window.event) {
+        triggerFloatingHearts(window.event);
+    }
+    toggleFavorite(id, btnElement);
+}
+
 function togglePlay() {
     if (mainVideo.paused) {
         mainVideo.play();
@@ -418,7 +465,8 @@ function updatePlayerFavBtn(id) {
     const btn = document.getElementById('playerFavBtn');
     const isFav = favorites.includes(id);
     btn.innerHTML = isFav ? `<i class="fa-solid fa-heart"></i>` : `<i class="fa-regular fa-heart"></i>`;
-    btn.onclick = () => toggleFavorite(id, btn);
+    // Attach FB Floating Hearts Splash directly on button trigger
+    btn.onclick = (e) => handleFavClick(id, btn, e);
 }
 
 function addToHistory(id) {
@@ -433,7 +481,6 @@ function toggleMenuDrawer() {
     document.getElementById('menuOverlay').classList.toggle('active');
 }
 
-// Drawer Modals Setup
 function openModal(id) {
     toggleMenuDrawer();
     document.getElementById(id).classList.add('open');
