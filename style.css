@@ -71,4 +71,41 @@
     padding: 1.2rem;
     border-radius: 16px;
     border: 1px solid var(--glass-border);
+}    animation: heartPop 0.35s ease-out;
+}
+
+@keyframes heartPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+/* Clear History Button styling */
+.clear-history-btn {
+    background: rgba(255, 74, 74, 0.12);
+    border: 1px solid rgba(255, 74, 74, 0.25);
+    color: #ff4a4a;
+    padding: 0.5rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.clear-history-btn:hover {
+    background: #ff4a4a;
+    color: #ffffff;
+}
+
+/* Player Screen Mobile Optimized Spacing */
+.player-details {
+    margin-top: 1rem;
+    background: var(--glass-bg);
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
 }
