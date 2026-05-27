@@ -140,7 +140,7 @@ async function renderVideos(items, sortByViews = false) {
     grid.innerHTML = htmlCards.join('');
 }
 
-// Live Server-Side Proxy Views Counter (Bypasses CORS!)
+// 👁️ Live Server-Side Proxy Views Counter (Bypasses CORS!)
 async function fetchLiveViews(videoId) {
     try {
         const response = await fetch(`/api/views?id=${videoId}`);
@@ -163,7 +163,7 @@ async function incrementLiveViews(videoId) {
 }
 
 // Open Player Screen with Privacy Mode active on Browser Drawer
-async function openVideoPlayer(videoId) {
+function openVideoPlayer(videoId) {
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
     currentVideo = video;
@@ -176,9 +176,11 @@ async function openVideoPlayer(videoId) {
     document.getElementById('backBtn').classList.add('visible');
     document.getElementById('playerTitle').innerText = video.title;
 
-    await incrementLiveViews(video.id);
-    const updatedViews = await fetchLiveViews(video.id);
-    document.getElementById('playerViewsCount').innerHTML = `<i class="fa-regular fa-eye"></i> ${updatedViews} views`;
+    // ⚡ NON-BLOCKING VIEWS COUNTER (Fixes the hanging & video playback delay completely!)
+    incrementLiveViews(video.id); 
+    fetchLiveViews(video.id).then(views => {
+        document.getElementById('playerViewsCount').innerHTML = `<i class="fa-regular fa-eye"></i> ${views} views`;
+    });
 
     // 🔒 Locks Browser playback metadata with blank spaces for absolute privacy
     if ('mediaSession' in navigator) {
@@ -210,10 +212,10 @@ async function openVideoPlayer(videoId) {
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
         
-        // ⚡ Fast buffering parameters (preload metadata loads play buttons instantly)
+        // preload="metadata" locks only headers, making play button launch video instantly!
         mainVideo.setAttribute("preload", "metadata");
         mainVideo.src = video.videoUrl;
-        mainVideo.load(); // 🛠️ FLUSHES OLD BUFFER AND STARTS STREAMING THE NEW SOURCE IMMEDIATELY (FIXES ENDLESS BUFFERING!)
+        mainVideo.load(); // FLUSHES OLD BUFFER
         
         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         mainVideo.play().catch(() => {});
@@ -294,7 +296,7 @@ async function toggleFullscreen() {
     }
 }
 
-// Render Suggested Videos (Strict checks to prevent empty sidebars)
+// Suggested list rendering under player
 async function renderSuggestedVideos(currentId) {
     const sidebar = document.getElementById('suggestedGrid');
     if (!sidebar) return;
@@ -307,11 +309,9 @@ async function renderSuggestedVideos(currentId) {
     }
 
     sidebar.innerHTML = filtered.slice(0, 8).map(video => {
-        // Procedural non-blocking views with safety guards on timestamp
         const timestamp = video.timestamp || Date.now();
         const fakeViews = Math.floor(((timestamp % 10000) / 4) + 120);
 
-        // Safe Fallback Thumbnail logic for suggested list
         let thumbImg = video.thumbnailUrl || "";
         if (thumbImg.trim() === "" || thumbImg.includes("placeholder")) {
             thumbImg = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop";
@@ -394,7 +394,7 @@ function filterVideosFromBottom(event) {
     renderVideos(filtered);
 }
 
-// Submissions
+// Submissions Forms
 async function handleContactSubmission(event) {
     event.preventDefault();
     const name = document.getElementById('contactName').value;
@@ -452,23 +452,39 @@ async function handleVideoSubmission(event) {
     }
 }
 
+// Synchronized Favorite function that handles icon state & classes perfectly
 function toggleFavorite(id, btn) {
     const index = favorites.indexOf(id);
+    const icon = btn.querySelector('i');
+    
     if (index > -1) {
         favorites.splice(index, 1);
         btn.classList.remove('active-fav');
+        if (icon) icon.className = "fa-regular fa-heart";
     } else {
         favorites.push(id);
         btn.classList.add('active-fav');
+        if (icon) icon.className = "fa-solid fa-heart";
     }
     localStorage.setItem('vh_favorites', JSON.stringify(favorites));
 }
 
+// Real-time Favorite class injector when loading Player Screen
 function updatePlayerFavBtn(id) {
     const btn = document.getElementById('playerFavBtn');
     const isFav = favorites.includes(id);
-    btn.innerHTML = isFav ? `<i class="fa-solid fa-heart"></i>` : `<i class="fa-regular fa-heart"></i>`;
-    btn.onclick = (e) => handleFavClick(id, btn, e);
+    
+    if (isFav) {
+        btn.classList.add('active-fav');
+        btn.innerHTML = `<i class="fa-solid fa-heart"></i>`;
+    } else {
+        btn.classList.remove('active-fav');
+        btn.innerHTML = `<i class="fa-regular fa-heart"></i>`;
+    }
+    
+    btn.onclick = (e) => {
+        handleFavClick(id, btn, e);
+    };
 }
 
 function addToHistory(id) {
