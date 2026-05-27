@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Viral Hub - Premium Stream</title>
+    <!-- Premium Icons & Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    
+    <!-- ?v=3.5 forces mobile browsers to bypass cache and load fresh styles instantly -->
+    <link rel="stylesheet" href="style.css?v=3.5">
 </head>
 <body>
 
@@ -31,10 +34,11 @@
     </header>
 
     <main class="main-content">
-        <!-- Grid View Section (Default Home View) -->
+        <!-- Grid View Section -->
         <section id="gridView" class="view-section active-view">
             <div class="grid-header">
                 <h2 id="sectionTitle">Latest Videos</h2>
+                <!-- Premium Clear History Button -->
                 <button id="clearHistoryBtn" class="clear-history-btn" style="display: none;" onclick="clearAllHistory()">
                     <i class="fa-solid fa-trash-can"></i> Clear All
                 </button>
@@ -42,7 +46,7 @@
             <div class="video-grid" id="videoGrid"></div>
         </section>
 
-        <!-- Mobile-First Video Player Section (Initially Hidden) -->
+        <!-- Mobile-First Video Player Section -->
         <section id="playerView" class="view-section player-view" style="display: none;">
             <div class="player-container" id="playerContainer">
                 <video class="video-element" id="mainVideo" preload="metadata" playsinline controlsList="nodownload"></video>
@@ -100,7 +104,7 @@
             
             <div class="drawer-divider"></div>
             
-            <!-- Dynamic Switches -->
+            <!-- Settings Toggles -->
             <div class="toggle-container">
                 <span class="toggle-label"><i class="fa-solid fa-film"></i> Original Thumbnail Show</span>
                 <label class="switch">
@@ -234,6 +238,7 @@
     <!-- Toast Notifications -->
     <div class="toast" id="toastMessage">Action completed successfully!</div>
 
-    <script src="app.js"></script>
+    <!-- ?v=3.5 forces mobile browsers to bypass cache and load fresh script instantly -->
+    <script src="app.js?v=3.5"></script>
 </body>
 </html>
