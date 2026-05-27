@@ -54,7 +54,7 @@ function toggleSearchHistoryPause() {
 function toggleOriginalThumbnails() {
     isOriginalThumbnailShow = document.getElementById('originalThumbnailShow').checked;
     localStorage.setItem('vh_orig_thumb', JSON.stringify(isOriginalThumbnailShow));
-    renderVideos(videos); // Re-render feed
+    renderVideos(videos); 
 }
 
 function disableVideoLongPress() {
@@ -76,7 +76,6 @@ async function fetchVideos() {
     }
 }
 
-// Render Videos (Instant Render to prevent hanging)
 async function renderVideos(items, sortByViews = false) {
     const grid = document.getElementById('videoGrid');
     if (items.length === 0) {
@@ -86,7 +85,6 @@ async function renderVideos(items, sortByViews = false) {
 
     let sorted = [...items];
 
-    // Sorting Logics
     if (sortByViews) {
         const videoDataWithViews = await Promise.all(sorted.map(async (v) => {
             const views = await fetchLiveViews(v.id);
@@ -105,6 +103,7 @@ async function renderVideos(items, sortByViews = false) {
 
         let thumbElement = `<img src="${video.thumbnailUrl}" alt="">`;
         if (isOriginalThumbnailShow && !hasIframeUrl && video.videoUrl) {
+            // Optimized video tag for ultra-fast thumbnail loading
             thumbElement = `<video src="${video.videoUrl}" muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover;"></video>`;
         }
 
@@ -128,7 +127,6 @@ async function renderVideos(items, sortByViews = false) {
     });
     grid.innerHTML = htmlCards.join('');
 
-    // Load view counts asynchronously in background (Proxy Enabled)
     sorted.forEach(async (video) => {
         const views = await fetchLiveViews(video.id);
         const viewSpan = document.getElementById(`card-views-${video.id}`);
@@ -138,7 +136,6 @@ async function renderVideos(items, sortByViews = false) {
     });
 }
 
-// 👁️ Live Server-Side Proxy Views Counter (Bypasses all adblockers and CORS!)
 async function fetchLiveViews(videoId) {
     try {
         const response = await fetch(`/api/views?id=${videoId}`);
@@ -160,7 +157,7 @@ async function incrementLiveViews(videoId) {
     }
 }
 
-// Open Player Screen
+// Open Player & Fast-Load Optimization
 async function openVideoPlayer(videoId) {
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
@@ -198,7 +195,12 @@ async function openVideoPlayer(videoId) {
         iframeContainer.innerHTML = "";
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
+        
+        // Fast buffer loading attributes
+        mainVideo.setAttribute("preload", "auto");
         mainVideo.src = video.videoUrl;
+        
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         mainVideo.play().catch(() => {});
     }
 
@@ -206,6 +208,46 @@ async function openVideoPlayer(videoId) {
     renderSuggestedVideos(video.id);
     updatePlayerFavBtn(video.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 🕹️ Player Custom Actions (Fully Implemented!)
+function togglePlay() {
+    if (mainVideo.paused) {
+        mainVideo.play();
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    } else {
+        mainVideo.pause();
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    }
+}
+
+function toggleMute() {
+    mainVideo.muted = !mainVideo.muted;
+    const volIcon = document.getElementById('volumeBtn').querySelector('i');
+    if (mainVideo.muted) {
+        volIcon.className = "fa-solid fa-volume-mute";
+    } else {
+        volIcon.className = "fa-solid fa-volume-high";
+    }
+}
+
+async function toggleFullscreen() {
+    const container = document.getElementById('playerContainer');
+    try {
+        if (!document.fullscreenElement) {
+            await container.requestFullscreen();
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock('landscape').catch(() => {});
+            }
+        } else {
+            await document.exitFullscreen();
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        }
+    } catch (e) {
+        console.error("Fullscreen lock error: ", e);
+    }
 }
 
 async function renderSuggestedVideos(currentId) {
@@ -239,219 +281,4 @@ async function renderSuggestedVideos(currentId) {
 }
 
 function switchTab(tabName) {
-    const title = document.getElementById('sectionTitle');
-    const gridView = document.getElementById('gridView');
-    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-    
-    gridView.style.display = "block";
-    document.getElementById('playerView').style.display = "none";
-    document.getElementById('backBtn').classList.remove('visible');
-    mainVideo.pause();
-
-    // Toggle Clear All History button only on History Tab
-    if (tabName === 'history') {
-        clearHistoryBtn.style.display = "flex";
-    } else {
-        clearHistoryBtn.style.display = "none";
-    }
-
-    if (tabName === 'all') {
-        title.innerText = "Latest Videos";
-        renderVideos(videos, false);
-    } else if (tabName === 'favorites') {
-        title.innerText = "Favorite Videos";
-        renderVideos(videos.filter(v => favorites.includes(v.id)), false);
-    } else if (tabName === 'most_viewed') {
-        title.innerText = "Most Viewed Videos 🔥";
-        renderVideos(videos, true); 
-    } else if (tabName === 'history') {
-        title.innerText = "Recently Viewed";
-        renderVideos(historyList.map(id => videos.find(v => v.id === id)).filter(Boolean), false);
-    }
-}
-
-// 🧹 Clear All Watch History with Confirmation Pop-up
-function clearAllHistory() {
-    const confirmation = confirm("Are you sure you want to delete your entire watch history? This cannot be undone.");
-    if (confirmation) {
-        historyList = [];
-        localStorage.setItem('vh_history', JSON.stringify(historyList));
-        showToast("Watch history cleared successfully!");
-        switchTab('history'); // Refresh view
-    }
-}
-
-function showGridView() {
-    document.getElementById('playerView').style.display = "none";
-    document.getElementById('gridView').style.display = "block";
-    document.getElementById('backBtn').classList.remove('visible');
-    mainVideo.pause();
-    iframeContainer.innerHTML = "";
-    
-    // Auto unlock landscape mode on back
-    if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
-    }
-}
-
-// 📱 Responsive Mobile Landscape Lock Engine on Fullscreen
-async function toggleFullscreen() {
-    const container = document.getElementById('playerContainer');
-    try {
-        if (!document.fullscreenElement) {
-            await container.requestFullscreen();
-            // Automatically lock device to landscape mode when entered fullscreen
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock('landscape').catch(() => {});
-            }
-        } else {
-            await document.exitFullscreen();
-            if (screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
-        }
-    } catch (e) {
-        console.error("Fullscreen lock error: ", e);
-    }
-}
-
-function toggleSearchOverlay() {
-    document.getElementById('searchOverlay').classList.toggle('active');
-}
-
-function filterVideosFromBottom(event) {
-    const query = event.target.value.toLowerCase();
-    const filtered = videos.filter(v => v.title.toLowerCase().includes(query));
-    renderVideos(filtered);
-}
-
-// Submissions Forms
-async function handleContactSubmission(event) {
-    event.preventDefault();
-    const name = document.getElementById('contactName').value;
-    const phone = document.getElementById('contactPhone').value;
-    const message = document.getElementById('contactMessage').value;
-
-    const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, message })
-    });
-
-    if (response.ok) {
-        closeModal('contactModal');
-        showToast('Message sent successfully!');
-        document.getElementById('contactForm').reset();
-    } else {
-        showToast('Failed to send message.');
-    }
-}
-
-function handleFileSelected(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        selectedFileBase64 = reader.result;
-    };
-    reader.readAsDataURL(file);
-}
-
-async function handleVideoSubmission(event) {
-    event.preventDefault();
-    const title = document.getElementById('submitTitle').value;
-    const thumb = document.getElementById('submitThumb').value;
-    const videoUrl = document.getElementById('submitUrl').value;
-
-    const payload = {
-        title,
-        thumbnailUrl: thumb || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
-        videoUrl: videoUrl || selectedFileBase64
-    };
-
-    const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-
-    if (response.ok) {
-        closeModal('uploadModal');
-        showToast('Video submitted for approval!');
-        document.getElementById('uploadForm').reset();
-    } else {
-        showToast('Submission failed.');
-    }
-}
-
-function toggleFavorite(id, btn) {
-    const index = favorites.indexOf(id);
-    if (index > -1) {
-        favorites.splice(index, 1);
-        btn.classList.remove('active-fav');
-    } else {
-        favorites.push(id);
-        btn.classList.add('active-fav');
-    }
-    localStorage.setItem('vh_favorites', JSON.stringify(favorites));
-}
-
-function updatePlayerFavBtn(id) {
-    const btn = document.getElementById('playerFavBtn');
-    const isFav = favorites.includes(id);
-    btn.innerHTML = isFav ? `<i class="fa-solid fa-heart" style="color:#e91e63;"></i>` : `<i class="fa-regular fa-heart"></i>`;
-    btn.onclick = () => toggleFavorite(id, btn.querySelector('i'));
-}
-
-function addToHistory(id) {
-    if (isWatchHistoryPaused) return;
-    historyList = historyList.filter(item => item !== id);
-    historyList.unshift(id);
-    localStorage.setItem('vh_history', JSON.stringify(historyList));
-}
-
-function toggleMenuDrawer() {
-    document.getElementById('menuDrawer').classList.toggle('open');
-    document.getElementById('menuOverlay').classList.toggle('active');
-}
-
-function openModal(id) {
-    toggleMenuDrawer();
-    document.getElementById(id).classList.add('open');
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
-}
-
-function showToast(msg) {
-    const toast = document.getElementById('toastMessage');
-    toast.innerText = msg;
-    toast.classList.add('show');
-    setTimeout(() => { toast.classList.remove('show'); }, 3000);
-}
-
-function setActiveNavItem(id) {
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
-
-function resetFilters() {
-    document.getElementById('bottomSearchInput').value = "";
-    renderVideos(videos);
-}
-
-function setupPlayerListeners() {
-    mainVideo.addEventListener('timeupdate', () => {
-        if (mainVideo.duration) {
-            const pct = (mainVideo.currentTime / mainVideo.duration) * 100;
-            progressFill.style.width = `${pct}%`;
-            timeDisplay.innerText = `${formatTime(mainVideo.currentTime)} / ${formatTime(mainVideo.duration)}`;
-        }
-    });
-}
-
-function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-}
+    const title = document.getEle
