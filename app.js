@@ -28,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadToggleStates();
     fetchVideos();
     setupPlayerListeners();
-    disableVideoLongPress(); // Disable downloads
+    disableVideoLongPress(); // Disable video downloads
 });
 
 function initTheme() {
@@ -157,17 +157,22 @@ function openVideoPlayer(videoId) {
     document.getElementById('backBtn').classList.add('visible');
     document.getElementById('playerTitle').innerText = video.title;
 
-    // Display the exact same views count as explore page card (Fixed undefined views!)
+    // Display the exact same views count as explore page card
     const views = getViewsCount(video);
     document.getElementById('playerViewsCount').innerHTML = `<i class="fa-regular fa-eye"></i> ${views} views`;
 
-    // 🔒 Locks Browser playback metadata with blank spaces for absolute privacy
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaSessionMetadata({
-            title: ' ',
-            artist: ' ',
-            album: ' '
-        });
+    // 🔒 Locks Browser playback metadata with blank spaces
+    // Wrapped in a strict try-catch block to completely prevent any fatal crashes!
+    try {
+        if ('mediaSession' in navigator && window.MediaSessionMetadata) {
+            navigator.mediaSession.metadata = new MediaSessionMetadata({
+                title: ' ',
+                artist: ' ',
+                album: ' '
+            });
+        }
+    } catch (e) {
+        console.log("MediaSession not fully supported, bypassed safely.");
     }
 
     const url = video.videoUrl ? video.videoUrl.toLowerCase() : "";
