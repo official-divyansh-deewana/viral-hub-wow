@@ -6,14 +6,11 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: "Missing video ID." });
   }
 
-  // Allow Vercel to allow CORS natively
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST");
 
   try {
     let url = `https://api.counterapi.dev/v1/viralhub_views/${id}`;
-    
-    // If we want to increment the count
     if (req.method === "POST" || action === "up") {
       url = `https://api.counterapi.dev/v1/viralhub_views/${id}/up`;
     }
