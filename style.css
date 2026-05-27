@@ -41,7 +41,7 @@ body {
     padding-bottom: 80px;
 }
 
-/* Streaming download/long-press protection */
+/* Streaming download protection */
 video {
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
@@ -749,6 +749,26 @@ input:checked + .slider:before {
     0% { transform: scale(1); }
     50% { transform: scale(1.35); }
     100% { transform: scale(1); }
+}
+
+/* Floating Emoji Reactions (FB Style) */
+.floating-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 120;
+    font-size: 1.4rem;
+    animation: floatUp 0.8s cubic-bezier(0.08, 0.82, 0.17, 1) forwards;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(0.6) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-120px) scale(1.2) rotate(15deg);
+        opacity: 0;
+    }
 }
 
 /* Toasts styling */
