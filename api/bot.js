@@ -1,4 +1,4 @@
-// Upgraded Admin Bot - Auto Delete Progress Message Cycle (api/bot.js)
+// Premium Serverless Admin Bot with /delall Safe Wipe (api/bot.js)
 const TELEGRAM_TOKEN = "8767174145:AAEvhVjTx0wKNxMs2J613oiOdp4XTVThJ0A";
 const ADMIN_ID = 2031314339;
 
@@ -31,21 +31,24 @@ async function handleMessage(message) {
     return;
   }
 
+  // 1. Start Command
   if (text === "/start") {
-    const welcomeMsg = `⚡️ **VIRAL HUB CONTROL PANEL v3.0** ⚡️\n` +
+    const welcomeMsg = `⚡️ **VIRAL HUB CONTROL PANEL v3.5** ⚡️\n` +
                        `─────────────────────────\n` +
                        `Welcome, Administrator! Here are your active commands:\n\n` +
                        `📊 **/stats** — वेबसाइट का लाइव डेटा और वीडियो काउंट देखें\n` +
+                       `🧹 **/delall** — वेबसाइट के सभी वीडियो एक क्लिक में डिलीट करें\n` +
                        `✅ **/done** — डेटाबेस सिंकिंग की पुष्टि करें\n` +
                        `❔ **/help** — नो-लिमिट लिंक अपलोड गाइड देखें\n\n` +
                        `📤 **वीडियो अपलोड करने के दो तरीके:**\n` +
-                       `🔹 **तरीका 1 (कम साइज़ < 20MB):** वीडियो फ़ाइल सीधे यहाँ फॉरवर्ड करें।\n` +
-                       `🔹 **तरीका 2 (नो-लिमिट - कोई भी साइज़):** लिंक को इस प्रकार भेजें:\n` +
+                       `🔹 **तरीका 1:** वीडियो फ़ाइल सीधे यहाँ फॉरवर्ड करें।\n` +
+                       `🔹 **तरीका 2:** लिंक को इस प्रकार भेजें:\n` +
                        `\`https://link.com/embed-code | वीडियो का नया टाइटल\``;
     await sendTelegramMessage(chatId, welcomeMsg);
     return;
   }
 
+  // 2. /stats Command
   if (text === "/stats") {
     await sendTelegramMessage(chatId, "📊 *डेटाबेस लोड किया जा रहा है...*");
     try {
@@ -59,6 +62,27 @@ async function handleMessage(message) {
     } catch (err) {
       await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}`);
     }
+    return;
+  }
+
+  // 3. /delall Command (With Safe Confirmation Buttons)
+  if (text === "/delall") {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: "⚠️ **WARNING: DATABASE WIPE REQUESTED** ⚠️\n─────────────────────────\nक्या आप वाकई वेबसाइट से सभी वीडियो डिलीट करना चाहते हैं? यह कदम वापस नहीं लिया जा सकता।",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "⚠️ Yes, Wipe Everything", callback_data: "confirm_delall" },
+              { text: "❌ Cancel", callback_data: "cancel_delall" }
+            ]
+          ]
+        }
+      })
+    });
     return;
   }
 
@@ -77,7 +101,7 @@ async function handleMessage(message) {
     return;
   }
 
-  // 6. डायरेक्ट वीडियो फ़ॉरवर्ड हैंडलर (Clean Message Deletion Cycle)
+  // 4. वीडियो फॉरवर्ड प्रोग्रेस डिलीट साइकिल
   let videoFile = null;
   let rawCaption = "Untitled Highlight";
 
@@ -90,23 +114,18 @@ async function handleMessage(message) {
   }
 
   if (videoFile) {
-    // 1. सबसे पहले चैट को साफ़ करने के लिए फ़ॉरवर्डेड वीडियो को डिलीट करें!
     await deleteMessage(chatId, message.message_id);
 
-    // 2. पहला प्रोग्रेस मैसेज भेजें
     const p1 = await sendTelegramMessage(chatId, "⏳ **Processing**: वीडियो का डायरेक्ट लिंक निकाला जा रहा है...");
     const p1Id = p1 ? p1.result.message_id : null;
 
     try {
       let videoUrl = "";
-      
-      // यदि वीडियो किसी पब्लिक चैनल से फ़ॉरवर्डेड है, तो सीधे लिंक निकालें (No-Limit Bypass)
       if (message.forward_from_chat && message.forward_from_chat.username) {
         const channelUsername = message.forward_from_chat.username;
         const messageId = message.forward_from_message_id;
         videoUrl = `https://t.me/${channelUsername}/${messageId}`;
       } else {
-        // अन्यथा getFile के ज़रिए डाउनलोड लिंक निकालें
         const fileResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getFile?file_id=${videoFile.file_id}`);
         const fileData = await fileResponse.json();
 
@@ -127,24 +146,46 @@ async function handleMessage(message) {
         duration: formatDuration(videoFile.duration)
       };
 
-      // 3. पहला प्रोग्रेस मैसेज डिलीट करें
       if (p1Id) await deleteMessage(chatId, p1Id);
 
-      // 4. दूसरा प्रोग्रेस मैसेज भेजें
       const p2 = await sendTelegramMessage(chatId, "💾 **Saving**: डेटाबेस अपडेट किया जा रहा है...");
       const p2Id = p2 ? p2.result.message_id : null;
 
       await commitToGitHub(newEntry);
 
-      // 5. दूसरा प्रोग्रेस मैसेज भी डिलीट करें
       if (p2Id) await deleteMessage(chatId, p2Id);
 
-      // 6. अंतिम सफलता का मैसेज भेजें (चैट बिल्कुल साफ रहेगी!)
       await sendTelegramMessage(chatId, `✅ **Success**: *${title}* सीधा वेबसाइट पर लाइव हो चुका है!`);
 
     } catch (err) {
       if (p1Id) await deleteMessage(chatId, p1Id);
       await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}\n\n💡 _टिप: यदि वीडियो 20MB से बड़ा है, तो इसे किसी पब्लिक चैनल में डालकर यहाँ फॉरवर्ड करें।_`);
+    }
+    return;
+  }
+
+  // डायरेक्ट लिंक अपलोड
+  if (text.includes("|") && (text.startsWith("http://") || text.startsWith("https://"))) {
+    await sendTelegramMessage(chatId, "⏳ **Processing**: लिंक को डेटाबेस में जोड़ा जा रहा है...");
+    try {
+      const parts = text.split("|");
+      const videoUrl = parts[0].trim();
+      const rawTitle = parts[1].trim();
+      const title = sanitizeTitle(rawTitle);
+
+      const newEntry = {
+        id: `vid-${Date.now()}`,
+        title: title,
+        videoUrl: videoUrl,
+        thumbnailUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop",
+        timestamp: Date.now(),
+        duration: "Web Stream"
+      };
+
+      await commitToGitHub(newEntry);
+      await sendTelegramMessage(chatId, `✅ **Success**: *${title}* वेबसाइट पर लाइव हो गया है!`);
+    } catch (err) {
+      await sendTelegramMessage(chatId, `❌ **Error**: ${err.message}`);
     }
   }
 }
@@ -155,6 +196,39 @@ async function handleCallback(query) {
   const messageText = query.message.text || "";
   const data = query.data;
 
+  // 1. /delall कन्फर्मेशन हैंडलर
+  if (data === "confirm_delall") {
+    try {
+      await wipeDatabase();
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text: "✅ **DATABASE WIPED SUCCESSFULLY**\n─────────────────────────\nवेबसाइट के सभी वीडियो अब पूरी तरह डिलीट हो चुके हैं।",
+          parse_mode: "Markdown"
+        })
+      });
+    } catch (e) {
+      await sendTelegramMessage(chatId, `❌ **Wipe Error**: ${e.message}`);
+    }
+  }
+
+  if (data === "cancel_delall") {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text: "❌ **DATABASE WIPE CANCELLED**\n─────────────────────────\nआपका डेटाबेस पूरी तरह सुरक्षित है।",
+        parse_mode: "Markdown"
+      })
+    });
+  }
+
+  // 2. पब्लिक सबमिशन अप्रूवल हैंडलर
   if (data === "approve_user_sub") {
     try {
       const title = messageText.split("SUB_TITLE:")[1].split("SUB_THUMB:")[0].trim();
@@ -260,6 +334,36 @@ async function commitToGitHub(newVideo) {
     headers,
     body: JSON.stringify({
       message: `🤖 Vercel Auto-Sync: ${newVideo.title}`,
+      content: updatedContentBase64,
+      sha
+    })
+  });
+}
+
+// 🧹 Empty the entire JSON array on GitHub
+async function wipeDatabase() {
+  const owner = process.env.GITHUB_REPO_OWNER;
+  const repo = process.env.GITHUB_REPO_NAME;
+  const token = process.env.GITHUB_TOKEN;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/videos.json`;
+  const headers = { "Authorization": `token ${token}`, "User-Agent": "Vercel-Bot" };
+
+  const getResponse = await fetch(url, { headers });
+  let sha = null;
+
+  if (getResponse.status === 200) {
+    const data = await getResponse.json();
+    sha = data.sha;
+  }
+
+  // Make database empty array []
+  const updatedContentBase64 = Buffer.from(JSON.stringify([], null, 2)).toString("base64");
+
+  await fetch(url, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      message: "🚨 Bot Action: Wiped Video Database",
       content: updatedContentBase64,
       sha
     })
