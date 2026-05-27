@@ -1,4 +1,4 @@
-// Optimized Highly Responsive Mobile-First App Engine (app.js)
+// Optimized Responsive Mobile-First App Engine (app.js)
 const DATA_SOURCE_URL = "./videos.json";
 
 let videos = [];
@@ -28,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadToggleStates();
     fetchVideos();
     setupPlayerListeners();
-    disableVideoLongPress(); // Disable video saving options
+    disableVideoLongPress(); // Disable video downloads
 });
 
 function initTheme() {
@@ -210,9 +210,10 @@ async function openVideoPlayer(videoId) {
         mainVideo.style.display = "block";
         playerControls.style.display = "flex";
         
-        // preload="metadata" locks only headers, making play button launch video instantly!
+        // ⚡ Fast buffering parameters (preload metadata loads play buttons instantly)
         mainVideo.setAttribute("preload", "metadata");
         mainVideo.src = video.videoUrl;
+        mainVideo.load(); // 🛠️ FLUSHES OLD BUFFER AND STARTS STREAMING THE NEW SOURCE IMMEDIATELY (FIXES ENDLESS BUFFERING!)
         
         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         mainVideo.play().catch(() => {});
@@ -293,8 +294,11 @@ async function toggleFullscreen() {
     }
 }
 
+// Render Suggested Videos (Strict checks to prevent empty sidebars)
 async function renderSuggestedVideos(currentId) {
     const sidebar = document.getElementById('suggestedGrid');
+    if (!sidebar) return;
+
     const filtered = videos.filter(v => v.id !== currentId);
     
     if (filtered.length === 0) {
@@ -303,12 +307,20 @@ async function renderSuggestedVideos(currentId) {
     }
 
     sidebar.innerHTML = filtered.slice(0, 8).map(video => {
-        // Procedural non-blocking views
-        const fakeViews = Math.floor(((video.timestamp % 10000) / 4) + 120);
+        // Procedural non-blocking views with safety guards on timestamp
+        const timestamp = video.timestamp || Date.now();
+        const fakeViews = Math.floor(((timestamp % 10000) / 4) + 120);
+
+        // Safe Fallback Thumbnail logic for suggested list
+        let thumbImg = video.thumbnailUrl || "";
+        if (thumbImg.trim() === "" || thumbImg.includes("placeholder")) {
+            thumbImg = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop";
+        }
+
         return `
             <div class="video-card" onclick="openVideoPlayer('${video.id}')" style="display: flex; gap: 0.8rem; border-radius: 8px; padding: 4px;">
                 <div class="thumbnail-container" style="width: 100px; height: 56px; flex-shrink: 0; border-radius: 6px; overflow: hidden;">
-                    <img src="${video.thumbnailUrl}" alt="">
+                    <img src="${thumbImg}" alt="" onerror="this.src='https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1200&auto=format&fit=crop'">
                 </div>
                 <div class="card-details" style="padding: 0; display: flex; flex-direction: column; justify-content: center;">
                     <h4 class="card-title" style="font-size: 0.8rem; height: auto; -webkit-line-clamp: 2; margin: 0;">${video.title}</h4>
@@ -382,7 +394,7 @@ function filterVideosFromBottom(event) {
     renderVideos(filtered);
 }
 
-// Submissions Forms
+// Submissions
 async function handleContactSubmission(event) {
     event.preventDefault();
     const name = document.getElementById('contactName').value;
