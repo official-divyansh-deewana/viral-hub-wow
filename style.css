@@ -63,7 +63,7 @@ video {
 
 .header-container {
     max-width: 1400px;
-    margin: 0 auto;
+    margin: 0 flex;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -527,7 +527,7 @@ input:checked + .slider:before {
     align-items: center;
 }
 
-/* Mobile-First Player Layout (Stacked) */
+/* Mobile-First Player Layout */
 .player-container {
     width: 100%;
     aspect-ratio: 16/9;
@@ -602,7 +602,11 @@ input:checked + .slider:before {
 }
 
 .player-details {
-    margin: 0.8rem 0;
+    margin-top: 1rem;
+    background: var(--glass-bg);
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
 }
 
 .player-title {
